@@ -7241,23 +7241,8 @@ void wlanInitFeatureOption(IN struct ADAPTER *prAdapter)
 	 */
 	prWifiVar->ucStaBandwidth = (uint8_t) wlanCfgGetUint32(
 				prAdapter, "StaBw", MAX_BW_160MHZ);
-#ifndef OPLUS_FEATURE_WIFI_SMART_BW
-	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2018/11/2 */
-	/* Modify for smart band-width decision */
 	prWifiVar->ucSta2gBandwidth = (uint8_t) wlanCfgGetUint32(
-				prAdapter, "Sta2gBw", MAX_BW_20MHZ);
-#else
-	//@2019/12/3 let prWifiVar->ucSta2gBandwidth in wlanInitFeatureOption can be controlled by smart feature option
-	//which means when feature off, driver STA BW cap will same with the original code
-	if (prAdapter->rSmartBW.smart_bw_params.SELECT_BW_WHEN_CONNECT_FEATRUE_ENABLE) {
-			prWifiVar->ucSta2gBandwidth = (unsigned char) wlanCfgGetUint32(
-							prAdapter, "Sta2gBw", MAX_BW_40MHZ);
-	} else {
-			prWifiVar->ucSta2gBandwidth = (uint8_t) wlanCfgGetUint32(
-			prAdapter, "Sta2gBw", MAX_BW_20MHZ);
-	}
-#endif
-
+				prAdapter, "Sta2gBw", MAX_BW_40MHZ);
 	prWifiVar->ucSta5gBandwidth = (uint8_t) wlanCfgGetUint32(
 				prAdapter, "Sta5gBw", MAX_BW_80MHZ);
 	/* GC,GO */
