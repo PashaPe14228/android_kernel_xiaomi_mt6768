@@ -2136,11 +2136,11 @@ static void probe_death_signal(void *ignore, int sig, struct siginfo *info,
 		atomic_read(&vcu_ptr->gce_job_cnt[VCU_VENC][1]) > 0) {
 			wait_cnt++;
 			if (wait_cnt > 5) {
-				pr_info("[VCU] Vpud killed gce status %d %d\n",
+				/*pr_info("[VCU] Vpud killed gce status %d %d\n",
 				atomic_read(
 				&vcu_ptr->gce_job_cnt[VCU_VDEC][0]),
 				atomic_read(
-				&vcu_ptr->gce_job_cnt[VCU_VENC][0]));
+				&vcu_ptr->gce_job_cnt[VCU_VENC][0]));*/
 				break;
 			}
 			usleep_range(10000, 20000);
