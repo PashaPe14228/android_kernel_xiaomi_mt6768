@@ -38,9 +38,9 @@
 extern void get_tp_info(void);
 
 static struct timeval start, end;
-const struct firmware *fw_entry;
-static size_t fw_need_write_size;
-static uint8_t *fwbuf;
+const struct firmware *fw_entry = NULL;
+static size_t fw_need_write_size = 0;
+static uint8_t *fwbuf = NULL;
 
 struct nvt_ts_bin_map {
 	char name[12];
@@ -139,7 +139,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
-static uint32_t partition;
+static uint32_t partition = 0;
 static uint8_t ilm_dlm_num = 2;
 static int32_t nvt_bin_header_parser(const u8 *fwdata, size_t fwsize)
 {
@@ -369,7 +369,7 @@ Description:
 return:
 	n.a.
 *******************************************************/
-loff_t file_offset;
+loff_t file_offset = 0;
 static int32_t nvt_read_ram_and_save_file(uint32_t addr, uint16_t len, char *name)
 {
 	char file[256] = "";
