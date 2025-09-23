@@ -172,6 +172,9 @@ struct cust_mt65xx_led {
  * delay_off: off time if led is blinking
  */
 struct mt65xx_led_data {
+#ifdef CONFIG_MTK_LEDS_BACKLIGHT
+	struct backlight_device *bl_dev;
+#endif
 	struct led_classdev cdev;
 	struct cust_mt65xx_led cust;
 	struct work_struct work;

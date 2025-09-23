@@ -38,6 +38,10 @@
 #include <asm-generic/gpio.h>
 #endif
 
+#ifdef CONFIG_MTK_LEDS_BACKLIGHT
+#include <linux/backlight.h>
+#endif
+
 /****************************************************************************
  * variables
  ***************************************************************************/
@@ -249,6 +253,11 @@ static void mt65xx_led_set(struct led_classdev *led_cdev,
 		}
 		mutex_unlock(&bl_level_limit_mutex);
 #endif
+#ifdef CONFIG_MTK_LEDS_BACKLIGHT
+		if ((led_data->bl_dev) == 0) {
+			led_data->bl_dev->props.brightness = level;
+		}
+#endif
 	}
 #ifdef CONFIG_BACKLIGHT_SUPPORT_LP8557
 	retval = gpio_request(I2C_SET_FOR_BACKLIGHT, "i2c_set_for_backlight");
@@ -292,6 +301,61 @@ static int mt65xx_blink_set(struct led_classdev *led_cdev,
 	else
 		return 0;
 }
+
+#ifdef CONFIG_MTK_LEDS_BACKLIGHT
+static int mtk_backlight_update_status(struct backlight_device *bl)
+{
+	struct mt65xx_led_data *led_data = bl_get_data(bl);
+	long brightness = bl->props.brightness;
+
+	mt65xx_led_set(&led_data->cdev, brightness);
+
+	return 0;
+}
+
+static int mtk_backlight_get_brightness(struct backlight_device *bl)
+{
+	struct mt65xx_led_data *led_data = bl_get_data(bl);
+
+	if (!led_data) {
+		pr_err("%s: led_data is NULL!\n", __func__);
+		return 0;
+	}
+
+	return led_data->level;
+}
+
+static const struct backlight_ops mtk_backlight_ops = {
+	.get_brightness = mtk_backlight_get_brightness,
+	.update_status = mtk_backlight_update_status,
+};
+
+static int mtk_register_backlight(struct mt65xx_led_data *led_data)
+{
+	struct backlight_properties props;
+	struct device *dev = led_data->cdev.dev->parent;
+	long max_brightness = LED_FULL;
+
+	if (strcmp(led_data->cust.name, "lcd-backlight") == 0) {
+		memset(&props, 0, sizeof(props));
+		props.type = BACKLIGHT_RAW;
+		props.max_brightness = max_brightness;
+		props.brightness = max_brightness;
+		props.power = FB_BLANK_UNBLANK;
+
+		led_data->bl_dev = devm_backlight_device_register(dev, "panel0-backlight", dev, led_data,&mtk_backlight_ops, &props);
+	}
+
+	return 0;
+}
+
+static void mtk_unregister_backlight(struct mt65xx_led_data *led_data)
+{
+	if (led_data->bl_dev) {
+		led_data->bl_dev = NULL;
+	}
+}
+#endif
 
 /****************************************************************************
  * external functions for display
@@ -499,6 +563,12 @@ static int mt65xx_leds_probe(struct platform_device *pdev)
 
 		if (ret)
 			goto err;
+
+#ifdef CONFIG_MTK_LEDS_BACKLIGHT
+		if (g_leds_data[TYPE_LCD]) {
+			mtk_register_backlight(g_leds_data[TYPE_LCD]);
+		}
+#endif
 	}
 
 #ifdef CONTROL_BL_TEMPERATURE
@@ -538,6 +608,13 @@ static int mt65xx_leds_remove(struct platform_device *pdev)
 	for (i = 0; i < TYPE_TOTAL; i++) {
 		if (!g_leds_data[i])
 			continue;
+
+#ifdef CONFIG_MTK_LEDS_BACKLIGHT
+		if (g_leds_data[TYPE_LCD]) {
+			mtk_unregister_backlight(g_leds_data[TYPE_LCD]);
+		}
+#endif
+
 		led_classdev_unregister(&g_leds_data[i]->cdev);
 		cancel_work_sync(&g_leds_data[i]->work);
 		kfree(g_leds_data[i]);
