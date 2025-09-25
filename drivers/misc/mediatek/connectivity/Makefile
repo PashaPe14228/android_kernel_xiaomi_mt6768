@@ -49,6 +49,10 @@ endif
         MTK_PLATFORM_ID := $(patsubst CONSYS_%,%,$(subst ",,$(CONFIG_MTK_COMBO_CHIP)))
         $(info MTK_PLATFORM_ID is [${MTK_PLATFORM_ID}])
 
+        export CONNAC_VER=1_0
+        export MTK_PLATFORM_WMT=$(MTK_PLATFORM)
+        export TARGET_BOARD_PLATFORM_WMT="CONSYS_6768"
+
         # for gen4m options
         export CONFIG_MTK_COMBO_WIFI_HIF=axi
 	export MTK_COMBO_CHIP=CONNAC
