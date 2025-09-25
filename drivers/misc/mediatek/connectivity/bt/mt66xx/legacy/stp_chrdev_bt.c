@@ -18,6 +18,7 @@
 #include <linux/pm_qos.h>
 #include <linux/notifier.h>
 #include <linux/fb.h>
+#include <linux/suspend.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -39,6 +40,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define BT_BUFFER_SIZE              2048
 #define FTRACE_STR_LOG_SIZE         256
 #define REG_READL(addr) readl((volatile uint32_t *)(addr))
+#define REG_WRITEL(addr, val) writel(val, (volatile uint32_t *)(addr))
 
 /*******************************************************************************
 *                            P U B L I C   D A T A
@@ -146,6 +148,27 @@ static uint32_t inline bt_read_cr(unsigned char *cr_name, uint32_t addr)
 	return value;
 }
 
+static uint32_t inline bt_audio_cr_dbug(void)
+{
+	uint32_t addr = 0x1800700C;
+	uint32_t value = 0;
+	uint8_t *base = ioremap_nocache(addr, 0x10);
+
+	if (base == NULL) {
+		BT_LOG_PRT_WARN("remapping 0x%08x fail\n", addr);
+	} else {
+		value = REG_READL(base);
+		iounmap(base);
+		BT_LOG_PRT_INFO("AUDIO_REMAP[0x%08x], read[0x%08x]\n", addr, value);
+
+		if(value != 0x00410000) {
+			BT_LOG_PRT_ERR("wrong value!!\n");
+		}
+	}
+	return value;
+}
+
+/*
 static struct notifier_block bt_fb_notifier;
 static int bt_fb_notifier_callback(struct notifier_block
 				*self, unsigned long event, void *data)
@@ -190,6 +213,46 @@ static int bt_fb_notify_register(void)
 static void bt_fb_notify_unregister(void)
 {
 	fb_unregister_client(&bt_fb_notifier);
+}
+*/
+
+static struct notifier_block bt_pm_notifier;
+static int bt_pm_notifier_callback(struct notifier_block *nb,
+		unsigned long event, void *dummy)
+{
+	BT_LOG_PRT_INFO("%s: btonflag[%d], event[%ld]", __func__, btonflag, event);
+	switch (event) {
+		case PM_SUSPEND_PREPARE:
+		case PM_POST_SUSPEND:
+			if(btonflag == 1 && rstflag == 0) {
+				// for fw debug power issue
+				bt_read_cr("HOST_MAILBOX_BT_ADDR", 0x18007124);
+			}
+			break;
+		default:
+			break;
+	}
+	return NOTIFY_DONE;
+}
+
+static int bt_pm_notify_register(void)
+{
+	int32_t ret;
+
+	bt_pm_notifier.notifier_call = bt_pm_notifier_callback;
+
+	ret = register_pm_notifier(&bt_pm_notifier);
+	if (ret)
+		BT_LOG_PRT_ERR("Register bt_pm_notifier failed:%d\n", ret);
+	else
+		BT_LOG_PRT_INFO("Register bt_pm_notifier succeed\n");
+
+	return ret;
+}
+
+static void bt_pm_notify_unregister(void)
+{
+	unregister_pm_notifier(&bt_pm_notifier);
 }
 
 /*******************************************************************
@@ -322,6 +385,9 @@ static ssize_t __bt_write(const PUINT8 buffer, size_t count)
 	INT32 retval = 0;
 
 	retval = mtk_wcn_stp_send_data(buffer, count, BT_TASK_INDX);
+
+	//if(g_bt_dbg_st.audio_cr_dbug == 1)
+	//	bt_audio_cr_dbug();
 
 	if (retval < 0)
 		BT_LOG_PRT_ERR("mtk_wcn_stp_send_data fail, retval %d\n", retval);
@@ -659,7 +725,7 @@ static int BT_open(struct inode *inode, struct file *file)
 	INIT_DELAYED_WORK(&qos_ctrl.work, pm_qos_release);
 	up(&qos_ctrl.sem);
 #endif
-	bt_fb_notify_register();
+	bt_pm_notify_register();
 
 	return 0;
 }
@@ -668,7 +734,7 @@ static int BT_close(struct inode *inode, struct file *file)
 {
 	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
 
-	bt_fb_notify_unregister();
+	bt_pm_notify_unregister();
 	bt_dev_dbg_set_state(FALSE);
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
 	bt_state_notify(OFF);

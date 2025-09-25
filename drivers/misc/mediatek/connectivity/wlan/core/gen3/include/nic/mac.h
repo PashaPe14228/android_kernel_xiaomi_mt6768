@@ -744,6 +744,7 @@
 #define STATUS_CODE_DESTINATION_STA_NOT_PRESENT     49	/* Destination STA is not present within this QBSS */
 #define STATUS_CODE_DESTINATION_STA_NOT_QSTA        50	/* Destination STA is not a QSTA */
 #define STATUS_CODE_ASSOC_DENIED_LARGE_LIS_INTERVAL 51	/* Association denied because the ListenInterval is too large */
+#define STATUS_INVALID_PMKID			    53	/* Invalid pairwise master key identifier (PMKID) */
 
 /* proprietary definition of reserved field of Status Code */
 #define STATUS_CODE_JOIN_FAILURE                    0xFFF0	/* Join failure */
@@ -1315,7 +1316,8 @@
 
 /* 7.4.7 Public Action frame details */
 #define ACTION_PUBLIC_20_40_COEXIST                 0	/* 20/40 BSS coexistence */
-
+/* 20/40 BSS coexistence */
+#define ACTION_PUBLIC_VENDOR_SPECIFIC               9
 #if CFG_SUPPORT_802_11W
 /* SA Query Action frame (IEEE 802.11w/D8.0, 7.4.9) */
 #define ACTION_SA_QUERY_REQUEST                     0

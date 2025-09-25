@@ -74,6 +74,10 @@
 #endif /* CFG_SUPPORT_PASSPOINT */
 #include "gl_os.h"
 
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/2, add for smart band-width decision */
+#include "oppo_smart_bw_decision.h"
+#endif
 /*******************************************************************************
  *                              C O N S T A N T S
  *******************************************************************************
@@ -614,6 +618,8 @@ struct BSS_INFO {
 	uint8_t aucCountryStr[3];
 	uint8_t aucSubbandTriplet[253];
 	enum ENUM_IFTYPE eIftype;
+
+	uint8_t ucDeauthTrialCount;
 };
 
 /* Support AP Selection */
@@ -888,7 +894,9 @@ struct WIFI_VAR {
 	uint8_t ucTWTResponder;
 	uint8_t ucTWTStaBandBitmap;
 #endif
-
+#if (CFG_TWT_SMART_STA == 1)
+	uint8_t ucTWTSmartSta;
+#endif
 	uint8_t ucTspec;
 	uint8_t ucUapsd;
 	uint8_t ucStaUapsd;
@@ -1635,6 +1643,9 @@ struct ADAPTER {
 	/* COEX feature */
 	uint32_t u4FddMode;
 
+	/* host status EMI offset*/
+	uint32_t u4HostStatusEmiOffset;
+
 #if CFG_WOW_SUPPORT
 	struct WOW_CTRL	rWowCtrl;
 #endif
@@ -1764,7 +1775,10 @@ struct ADAPTER {
 #endif
 
 	int8_t cArpNoResponseIdx;
-
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/1, add for smart band-width decision */
+	SMART_BW_T rSmartBW;
+#endif
 	u_int8_t fgEnDbgPowerMode;
 
 	struct HIF_STATS rHifStats;

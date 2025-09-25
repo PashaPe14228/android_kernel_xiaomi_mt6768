@@ -82,6 +82,10 @@
 #include <net/netlink.h>
 #endif
 
+#if CFG_MODIFY_TX_POWER_BY_BAT_VOLT
+#include "pmic_lbat_service.h"
+#endif
+
 #if CFG_TC1_FEATURE
 #include <tc1_partition.h>
 #endif
@@ -141,6 +145,11 @@ static struct KAL_HALT_CTRL_T rHaltCtrl = {
 };
 /* framebuffer callback related variable and status flag */
 u_int8_t wlan_fb_power_down = FALSE;
+#if CFG_MODIFY_TX_POWER_BY_BAT_VOLT
+void *wlan_bat_volt_notifier_priv_data;
+unsigned int wlan_bat_volt;
+bool fgIsTxPowerDecreased = FALSE;
+#endif
 
 #if CFG_FORCE_ENABLE_PERF_MONITOR
 u_int8_t wlan_perf_monitor_force_enable = TRUE;
@@ -1190,7 +1199,7 @@ uint32_t kalRxIndicateOnePkt(IN struct GLUE_INFO
 #endif
 
 #if (CFG_SUPPORT_STATISTICS == 1)
-	StatsEnvRxTime2Host(prGlueInfo->prAdapter, prSkb);
+	StatsEnvRxTime2Host(prGlueInfo->prAdapter, prSkb, prNetDev);
 #endif
 
 #if KERNEL_VERSION(4, 11, 0) <= CFG80211_VERSION_CODE
@@ -1278,7 +1287,7 @@ uint32_t kalRxIndicateOnePkt(IN struct GLUE_INFO
 		kal_gro_flush(prGlueInfo->prAdapter, prNetDev);
 		spin_unlock_bh(&prNetDevPrivate->napi_spinlock);
 		preempt_enable();
-		DBGLOG_LIMITED(INIT, INFO, "napi_gro_receive:%p\n", prNetDev);
+		DBGLOG_LIMITED(INIT, TRACE, "napi_gro_receive:%p\n", prNetDev);
 		return WLAN_STATUS_SUCCESS;
 	}
 #endif
@@ -1344,6 +1353,10 @@ kalIndicateStatusAndComplete(IN struct GLUE_INFO
 
 	prDevHandler = wlanGetNetDev(prGlueInfo, ucBssIndex);
 
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2018/11/19, add for smart band-width decision */
+	handleSmartBWSwitchResult(eStatus);
+#endif
 	switch (eStatus) {
 	case WLAN_STATUS_ROAM_OUT_FIND_BEST:
 	case WLAN_STATUS_MEDIA_CONNECT:
@@ -1876,6 +1889,45 @@ kalIndicateStatusAndComplete(IN struct GLUE_INFO
 			aisGetTargetBssDesc(prAdapter, ucBssIndex);
 		struct CONNECTION_SETTINGS *prConnSettings =
 			aisGetConnSettings(prAdapter, ucBssIndex);
+		struct GL_WPA_INFO *prWpaInfo =
+			aisGetWpaInfo(prAdapter, ucBssIndex);
+		struct BSS_INFO *prBssInfo =
+			aisGetAisBssInfo(prAdapter, ucBssIndex);
+
+		/* Make sure we remove all WEP key */
+		if (prWpaInfo && prWpaInfo->u4WpaVersion ==
+			IW_AUTH_WPA_VERSION_DISABLED
+			&& prBssInfo && prBssInfo->wepkeyWlanIdx < WTBL_SIZE) {
+			uint32_t keyId;
+			uint32_t u4SetLen;
+			struct PARAM_REMOVE_KEY rRemoveKey;
+
+			for (keyId = 0; keyId <= 3; keyId++) {
+				if (!prBssInfo->wepkeyUsed[keyId])
+					continue;
+
+				rRemoveKey.u4Length =
+					sizeof(struct PARAM_REMOVE_KEY);
+				rRemoveKey.u4KeyIndex = keyId;
+				rRemoveKey.ucBssIdx = ucBssIndex;
+				if (prBssDesc)
+					kalMemCopy(rRemoveKey.arBSSID,
+						prBssDesc->aucBSSID,
+						MAC_ADDR_LEN);
+				else
+					kalMemCopy(rRemoveKey.arBSSID,
+						prConnSettings->aucBSSIDHint,
+						MAC_ADDR_LEN);
+				DBGLOG(INIT, INFO,
+					"JOIN Failure: remove WEP wlanidx: %d, keyid: %d",
+					prBssInfo->wepkeyWlanIdx,
+					rRemoveKey.u4KeyIndex);
+				wlanoidSetRemoveKey(prAdapter,
+					(void *)&rRemoveKey,
+					sizeof(struct PARAM_REMOVE_KEY),
+					&u4SetLen);
+			}
+		}
 
 		if (prBssDesc) {
 			DBGLOG(INIT, INFO, "JOIN Failure: u2JoinStatus=%d",
@@ -2288,11 +2340,7 @@ uint32_t kalResetStats(IN struct net_device *prDev)
 /*----------------------------------------------------------------------------*/
 void *kalGetStats(IN struct net_device *prDev)
 {
-	struct NETDEV_PRIVATE_GLUE_INFO *prNetDevPrivate;
-
-	prNetDevPrivate = (struct NETDEV_PRIVATE_GLUE_INFO *)
-			netdev_priv(prDev);
-	return (void *) &prNetDevPrivate->stats;
+	return (void *) &prDev->stats;
 }				/* end of wlanGetStats() */
 
 /*----------------------------------------------------------------------------*/
@@ -3852,6 +3900,7 @@ int hif_thread(void *data)
 					 netdev_priv(dev));
 	struct ADAPTER *prAdapter = prGlueInfo->prAdapter;
 	int ret = 0;
+	bool fgEnInt;
 #if defined(CONFIG_ANDROID) && (CFG_ENABLE_WAKE_LOCK)
 	KAL_WAKE_LOCK_T *prHifThreadWakeLock;
 
@@ -3912,7 +3961,10 @@ int hif_thread(void *data)
 		wlanAcquirePowerControl(prAdapter);
 
 		/* Handle Interrupt */
+		fgEnInt = (prGlueInfo->ulFlag | GLUE_FLAG_INT_BIT) != 0;
 		if (test_and_clear_bit(GLUE_FLAG_INT_BIT,
+				       &prGlueInfo->ulFlag) ||
+				       test_and_clear_bit(GLUE_FLAG_DRV_INT_BIT,
 				       &prGlueInfo->ulFlag)) {
 			kalTraceBegin("INT");
 			/* the Wi-Fi interrupt is already disabled in mmc
@@ -3929,7 +3981,7 @@ int hif_thread(void *data)
 			} else {
 				/* DBGLOG(INIT, INFO, ("HIF Interrupt!\n")); */
 				prGlueInfo->TaskIsrCnt++;
-				wlanIST(prAdapter);
+				wlanIST(prAdapter, fgEnInt);
 			}
 			kalTraceEnd();
 		}
@@ -3957,6 +4009,11 @@ int hif_thread(void *data)
 		if (test_and_clear_bit(GLUE_FLAG_UPDATE_WMM_QUOTA_BIT,
 					&prGlueInfo->ulFlag))
 			TRACE(halUpdateTxMaxQuota(prAdapter), "UPDATE_WMM");
+
+		/* Notify MD crash to FW */
+		if (test_and_clear_bit(GLUE_FLAG_NOTIFY_MD_CRASH_BIT,
+					&prGlueInfo->ulFlag))
+			halNotifyMdCrash(prAdapter);
 
 		/* Set FW own */
 		if (test_and_clear_bit(GLUE_FLAG_HIF_FW_OWN_BIT,
@@ -4314,7 +4371,7 @@ int main_thread(void *data)
 					"ignore pending interrupt\n");
 			} else {
 				prGlueInfo->TaskIsrCnt++;
-				wlanIST(prGlueInfo->prAdapter);
+				wlanIST(prGlueInfo->prAdapter, true);
 			}
 			kalTraceEnd();
 		}
@@ -5058,9 +5115,29 @@ void kalSetIntEvent(struct GLUE_INFO *pr)
 #endif
 }
 
+void kalSetDrvIntEvent(struct GLUE_INFO *pr)
+{
+	KAL_WAKE_LOCK(pr->prAdapter, pr->rIntrWakeLock);
+	set_bit(GLUE_FLAG_DRV_INT_BIT, &pr->ulFlag);
+	/* when we got interrupt, we wake up servie thread */
+#if CFG_SUPPORT_MULTITHREAD
+	wake_up_interruptible(&pr->waitq_hif);
+#else
+	wake_up_interruptible(&pr->waitq);
+#endif
+}
+
 void kalSetWmmUpdateEvent(struct GLUE_INFO *pr)
 {
 	set_bit(GLUE_FLAG_UPDATE_WMM_QUOTA_BIT, &pr->ulFlag);
+#if CFG_SUPPORT_MULTITHREAD
+	wake_up_interruptible(&pr->waitq_hif);
+#endif
+}
+
+void kalSetMdCrashEvent(struct GLUE_INFO *pr)
+{
+	set_bit(GLUE_FLAG_NOTIFY_MD_CRASH_BIT, &pr->ulFlag);
 #if CFG_SUPPORT_MULTITHREAD
 	wake_up_interruptible(&pr->waitq_hif);
 #endif
@@ -8332,20 +8409,28 @@ void kalScanReqLog(struct cfg80211_scan_request *request)
 
 void kalScanResultLog(struct ADAPTER *prAdapter, struct ieee80211_mgmt *mgmt)
 {
+	KAL_SPIN_LOCK_DECLARATION();
+
+	KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_CFG);
 	scanLogCacheAddBSS(
 		&(prAdapter->rWifiVar.rScanInfo.rScanLogCache.rBSSListCFG),
 		prAdapter->rWifiVar.rScanInfo.rScanLogCache.arBSSListBufCFG,
 		LOG_SCAN_RESULT_D2K,
 		mgmt->bssid,
 		mgmt->seq_ctrl);
+	KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_CFG);
 }
 
 void kalScanLogCacheFlushBSS(struct ADAPTER *prAdapter,
 	const uint16_t logBufLen)
 {
+	KAL_SPIN_LOCK_DECLARATION();
+
+	KAL_ACQUIRE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_CFG);
 	scanLogCacheFlushBSS(
 		&(prAdapter->rWifiVar.rScanInfo.rScanLogCache.rBSSListCFG),
-		LOG_SCAN_DONE_D2K, logBufLen);
+		LOG_SCAN_DONE_D2K);
+	KAL_RELEASE_SPIN_LOCK(prAdapter, SPIN_LOCK_BSSLIST_CFG);
 }
 
 
@@ -8675,6 +8760,148 @@ void kal_do_gettimeofday(struct timeval *tv)
 }
 #endif
 
+#if CFG_MODIFY_TX_POWER_BY_BAT_VOLT
+void kalEnableTxPwrBackoffByBattVolt(struct ADAPTER *prAdapter, bool ucEnable)
+{
+	struct CMD_TX_POWER_PERCENTAGE_CTRL_T  rTxPwrPercentage;
+
+	ASSERT(prAdapter);
+
+	if (!prAdapter)
+		return;
+
+	rTxPwrPercentage.ucPowerCtrlFormatId = TX_POWER_PERCENTAGE_CTRL;
+	rTxPwrPercentage.fgPercentageEnable = ucEnable;
+	rTxPwrPercentage.ucBandIdx = 0;	/* TODO: how to get bandIdx */
+
+	DBGLOG(NIC, INFO, "kalEnableTxPwrBackoffByBattVolt, ucEnable = %d",
+				rTxPwrPercentage.fgPercentageEnable);
+
+	wlanSendSetQueryExtCmd(prAdapter,
+				CMD_ID_LAYER_0_EXT_MAGIC_NUM,
+			    EXT_CMD_ID_TX_POWER_FEATURE_CTRL,
+			    TRUE,
+			    FALSE, FALSE, NULL, NULL,
+			    sizeof(struct CMD_TX_POWER_PERCENTAGE_CTRL_T),
+			    (uint8_t *)&rTxPwrPercentage, NULL, 0);
+}
+
+void kalSetTxPwrBackoffByBattVolt(struct ADAPTER *prAdapter, bool ucEnable)
+{
+	struct CMD_TX_POWER_PERCENTAGE_DROP_CTRL_T  rTxPwrDrop;
+
+	ASSERT(prAdapter);
+
+	if (!prAdapter)
+		return;
+
+	rTxPwrDrop.ucPowerCtrlFormatId = TX_POWER_DROP_CTRL;
+	if (ucEnable)
+		rTxPwrDrop.i1PowerDropLevel = 3;
+	else
+		rTxPwrDrop.i1PowerDropLevel = 0;
+	rTxPwrDrop.ucBandIdx = 0;   /* TODO: how to get bandIdx */
+
+	DBGLOG(NIC, INFO, "kalSetTxPwrBackoffByBattVolt, i1PowerDropLevel = %d",
+			rTxPwrDrop.i1PowerDropLevel);
+
+	wlanSendSetQueryExtCmd(prAdapter,
+				CMD_ID_LAYER_0_EXT_MAGIC_NUM,
+			    EXT_CMD_ID_TX_POWER_FEATURE_CTRL,
+			    TRUE,
+			    FALSE, FALSE, NULL, NULL,
+			    sizeof(struct CMD_TX_POWER_PERCENTAGE_DROP_CTRL_T),
+			    (uint8_t *)&rTxPwrDrop, NULL, 0);
+
+	if (prAdapter->rWifiVar.eDbdcMode == ENUM_DBDC_MODE_DYNAMIC) {
+		DBGLOG(NIC, INFO,
+			  "kalSetTxPwrBackoffByBattVolt, ENUM_DBDC_MODE_DYNAMIC");
+		rTxPwrDrop.ucBandIdx = 1;
+
+		wlanSendSetQueryExtCmd(prAdapter,
+				CMD_ID_LAYER_0_EXT_MAGIC_NUM,
+			    EXT_CMD_ID_TX_POWER_FEATURE_CTRL,
+			    TRUE,
+			    FALSE, FALSE, NULL, NULL,
+			    sizeof(struct CMD_TX_POWER_PERCENTAGE_DROP_CTRL_T),
+			    (uint8_t *)&rTxPwrDrop, NULL, 0);
+	}
+}
+
+static void kal_bat_volt_notifier_callback(unsigned int volt)
+{
+	struct GLUE_INFO *prGlueInfo =
+			(struct GLUE_INFO *)wlan_bat_volt_notifier_priv_data;
+	struct ADAPTER *prAdapter = NULL;
+	struct REG_INFO *prRegInfo = NULL;
+
+	wlan_bat_volt = volt;
+	if (prGlueInfo == NULL || (prGlueInfo->u4ReadyFlag == 0)) {
+		DBGLOG(NIC, ERROR, "volt = %d, driver is not ready", volt);
+		return;
+	}
+	prAdapter = prGlueInfo->prAdapter;
+	prRegInfo = &prGlueInfo->rRegInfo;
+
+	if (prRegInfo == NULL || prGlueInfo->prAdapter == NULL) {
+		DBGLOG(NIC, ERROR,
+			"volt = %d, prRegInfo or prAdapter is NULL", volt);
+		return;
+	}
+	if (prGlueInfo->ulFlag & GLUE_FLAG_HALT) {
+		DBGLOG(NIC, ERROR, "volt = %d, Wi-Fi is stopped", volt);
+		fgIsTxPowerDecreased = FALSE;
+		return;
+	}
+
+	kalEnableTxPwrBackoffByBattVolt(prAdapter, TRUE);
+
+	if (volt == 3650 && fgIsTxPowerDecreased == TRUE) {
+		kalSetTxPwrBackoffByBattVolt(prAdapter, FALSE);
+		fgIsTxPowerDecreased = FALSE;
+	} else if (volt == 3550 && fgIsTxPowerDecreased == FALSE) {
+		kalSetTxPwrBackoffByBattVolt(prAdapter, TRUE);
+		fgIsTxPowerDecreased = TRUE;
+	}
+}
+
+int32_t kalBatNotifierReg(IN struct GLUE_INFO *prGlueInfo)
+{
+	int32_t i4Ret = 0;
+#if (KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE)
+	static struct lbat_user *lbat_pt;
+#else
+	static struct lbat_user rWifiBatVolt;
+#endif
+	wlan_bat_volt_notifier_priv_data = prGlueInfo;
+	wlan_bat_volt = 0;
+#if (KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE)
+	lbat_pt = lbat_user_register("WiFi Get Battery Voltage", 3650,
+				3550, 2000, kal_bat_volt_notifier_callback);
+	if (IS_ERR(lbat_pt)) {
+		i4Ret = PTR_ERR(lbat_pt);
+	}
+#else
+	i4Ret = lbat_user_register(&rWifiBatVolt, "WiFi Get Battery Voltage",
+			3650, 3550, 2000,
+			kal_bat_volt_notifier_callback);
+#endif
+
+	if (i4Ret)
+		DBGLOG(SW4, ERROR, "Register rWifiBatVolt failed:%d\n", i4Ret);
+	else
+		DBGLOG(SW4, TRACE, "Register rWifiBatVolt succeed\n");
+
+	return i4Ret;
+}
+
+void kalBatNotifierUnReg(void)
+{
+	wlan_bat_volt_notifier_priv_data = NULL;
+}
+
+#endif
+
 static void kalDumpHifStats(IN struct ADAPTER *prAdapter)
 {
 	struct HIF_STATS *prHifStats;
@@ -8743,6 +8970,39 @@ static void kalDumpHifStats(IN struct ADAPTER *prAdapter)
 			CFG_RX_MAX_PKT_NUM);
 	DBGLOG(HAL, INFO, "%s\n", buf);
 	kalMemFree(buf, VIR_MEM_TYPE, u4BufferSize);
+}
+
+uint32_t kalSetSuspendFlagToEMI(IN struct ADAPTER
+					*prAdapter, IN u_int8_t fgSuspend)
+{
+#if CFG_MTK_ANDROID_EMI
+	uint32_t u4Offset = prAdapter->u4HostStatusEmiOffset
+				& WIFI_EMI_ADDR_MASK;
+	uint32_t suspendFlag = 0;
+
+	if (!gConEmiPhyBase) {
+#if (CFG_SUPPORT_CONNINFRA == 1)
+		conninfra_get_phy_addr(
+			(unsigned int *)&gConEmiPhyBase,
+			(unsigned int *)&gConEmiSize);
+#endif
+
+		if (!gConEmiPhyBase) {
+			DBGLOG(INIT, ERROR,
+				"[EMI_Suspend] gConEmiPhyBase invalid\n");
+			return WLAN_STATUS_FAILURE;
+		}
+	}
+	suspendFlag = (fgSuspend == TRUE) ? 0x11111111 : 0x22222222;
+
+	DBGLOG(INIT, TRACE,
+		"[EMI_Suspend] EmiPhyBase:0x%llx offset:0x%x set 0x%x",
+		(uint64_t)gConEmiPhyBase, u4Offset, suspendFlag);
+
+	wf_ioremap_write((gConEmiPhyBase + u4Offset), suspendFlag);
+
+#endif /* CFG_MTK_ANDROID_EMI */
+	return WLAN_STATUS_SUCCESS;
 }
 
 #if KERNEL_VERSION(5, 4, 0) <= CFG80211_VERSION_CODE

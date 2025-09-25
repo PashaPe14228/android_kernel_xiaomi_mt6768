@@ -514,6 +514,7 @@ enum ENUM_RX_STATISTIC_COUNTER {
 	RX_MIC_ERROR_DROP_COUNT,
 	RX_BAR_DROP_COUNT,
 	RX_NO_INTEREST_DROP_COUNT,
+	RX_REORDER_BEHIND_DROP_COUNT,
 	RX_TYPE_ERR_DROP_COUNT,
 	RX_CLASS_ERR_DROP_COUNT,
 	RX_DST_NULL_DROP_COUNT,
@@ -993,6 +994,11 @@ struct RX_DESC_OPS_T {
 #endif /* CFG_SUPPORT_WAKEUP_REASON_DEBUG */
 };
 
+struct ACTION_FRAME_SIZE_MAP {
+	uint16_t u2Index; /* High byte for Action, low byte for Category */
+	size_t len;
+};
+
 /*******************************************************************************
  *                           P R I V A T E   D A T A
  *******************************************************************************
@@ -1292,6 +1298,9 @@ struct RX_DESC_OPS_T {
 
 #define RXM_IS_MGMT_FRAME(_u2FrameCtrl) \
 	(((_u2FrameCtrl & MASK_FC_TYPE) == MAC_FRAME_TYPE_MGT) ? TRUE : FALSE)
+
+#define RXM_IS_PROTECTED_FRAME(_u2FrameCtrl) \
+	((_u2FrameCtrl & MASK_FC_PROTECTED_FRAME) ? TRUE : FALSE)
 
 /*******************************************************************************
  *                   F U N C T I O N   D E C L A R A T I O N S

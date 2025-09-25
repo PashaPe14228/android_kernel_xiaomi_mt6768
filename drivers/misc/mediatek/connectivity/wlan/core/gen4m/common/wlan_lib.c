@@ -487,6 +487,22 @@ struct PARAM_CUSTOM_KEY_CFG_STRUCT g_rDefaulteSetting[] = {
 	*	"Operation:default 0"
 	*   }
 	*/
+#ifdef OPLUS_BUG_STABILITY
+	//WangJames@CONNECTIVITY.WIFI.NETWORK.DL_SPEED.1115135, 2019/01/15,
+	//add for: [ modify Cw/TxOp param to compatible with gen4m]
+	{"WmmParamCwMax", "3"},
+	{"WmmParamCwMin", "3"},
+	{"WmmParamAifsN", "2"},
+	{"WmmParamCfgEn", "1"},
+	{"Cert11gModeEnable", "0"},
+
+	//KeShixing@CONNECTIVITY.WIFI.CONNECTION.DISCONNECT,2002137, 2019/05/11,
+	//Add for add beacon to 10+10 before disconnect to avoid multiple disconnect
+	{"ScreenOnBeaconTimeoutCount", "10"},
+	//Add for check if any data at the last 2s,if has then not disconnect
+	{"BeaconTimoutFilterDurationMs","2000"},
+#endif /* OPLUS_BUG_STABILITY */
+
 	{"AdapScan", "0x0", WLAN_CFG_DEFAULT},
 #if CFG_SUPPORT_IOT_AP_BLACKLIST
 	/*Fill Iot AP blacklist here*/
@@ -499,6 +515,27 @@ struct PARAM_CUSTOM_KEY_CFG_STRUCT g_rDefaulteSetting[] = {
 	{"DropPacketsIPV6Low", "0x1"},
 	{"Sta2gBw", "1"},
 #endif
+#ifdef OPLUS_BUG_STABILITY
+	//zhanglei@CONNECTIVITY.WIFI.BASIC.POWER.917292, 2017/02/17,
+	//Add for: filter SSDP packets
+	{"DropPacketsIPV4Low", "0x12DE"},
+	{"DropPacketsIPV4High", "0x0"},
+
+	//Add for: filter IPV6 multicast packets
+	{"DropPacketsIPV6Low", "0x2"},
+	{"DropPacketsIPV6High", "0x0"},
+
+	//Add for: 2.4G mask invalid issue
+	{"2GTxMaskDPDOn", "1"},
+	{"2GTxPMinus1dbAtHighTemp", "1"},
+	{"TssiGroupBackupRestore", "1"},
+#endif /* OPLUS_BUG_STABILITY */
+
+#ifdef OPLUS_BUG_STABILITY
+	//WangXia@CONNECTIVITY.WIFI.BMISS, 2020/03/27,
+	//Add for: adjust beacon miss report time as 3 seconds, 5*100ms is a round
+	{"LdtBTONullHwLifeTime", "5"},
+#endif /* OPLUS_BUG_STABILITY */
 };
 
 /*******************************************************************************
@@ -710,8 +747,9 @@ void wlanAdapterDestroy(IN struct ADAPTER *prAdapter)
 	if (!prAdapter)
 		return;
 
-	scanLogCacheFlushAll(&(prAdapter->rWifiVar.rScanInfo.rScanLogCache),
-		LOG_SCAN_D2D, SCAN_LOG_MSG_MAX_LEN);
+	scanLogCacheFlushAll(prAdapter,
+		&(prAdapter->rWifiVar.rScanInfo.rScanLogCache),
+		LOG_SCAN_D2D);
 
 	kalMemFree(prAdapter, VIR_MEM_TYPE, sizeof(struct ADAPTER));
 }
@@ -1509,7 +1547,7 @@ u_int8_t wlanISR(IN struct ADAPTER *prAdapter,
  * \return (none)
  */
 /*----------------------------------------------------------------------------*/
-void wlanIST(IN struct ADAPTER *prAdapter)
+void wlanIST(IN struct ADAPTER *prAdapter, bool fgEnInt)
 {
 	uint32_t u4Status = WLAN_STATUS_SUCCESS;
 
@@ -1531,7 +1569,8 @@ void wlanIST(IN struct ADAPTER *prAdapter)
 #endif
 	}
 
-	nicEnableInterrupt(prAdapter);
+	if (fgEnInt)
+		nicEnableInterrupt(prAdapter);
 
 	RECLAIM_POWER_CONTROL_TO_PM(prAdapter, FALSE);
 
@@ -6924,7 +6963,7 @@ void wlanBindBssIdxToNetInterface(IN struct GLUE_INFO *prGlueInfo,
  * @param prGlueInfo                     Pointer of prGlueInfo Data Structure
  * @param ucNetInterfaceIndex       Index of network interface
  *
- * @return UINT_8                         Index of BSS
+ * @return unsigned char                         Index of BSS
  */
 /*----------------------------------------------------------------------------*/
 uint8_t wlanGetBssIdxByNetInterface(IN struct GLUE_INFO
@@ -7202,8 +7241,23 @@ void wlanInitFeatureOption(IN struct ADAPTER *prAdapter)
 	 */
 	prWifiVar->ucStaBandwidth = (uint8_t) wlanCfgGetUint32(
 				prAdapter, "StaBw", MAX_BW_160MHZ);
+#ifndef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2018/11/2 */
+	/* Modify for smart band-width decision */
 	prWifiVar->ucSta2gBandwidth = (uint8_t) wlanCfgGetUint32(
 				prAdapter, "Sta2gBw", MAX_BW_20MHZ);
+#else
+	//@2019/12/3 let prWifiVar->ucSta2gBandwidth in wlanInitFeatureOption can be controlled by smart feature option
+	//which means when feature off, driver STA BW cap will same with the original code
+	if (prAdapter->rSmartBW.smart_bw_params.SELECT_BW_WHEN_CONNECT_FEATRUE_ENABLE) {
+			prWifiVar->ucSta2gBandwidth = (unsigned char) wlanCfgGetUint32(
+							prAdapter, "Sta2gBw", MAX_BW_40MHZ);
+	} else {
+			prWifiVar->ucSta2gBandwidth = (uint8_t) wlanCfgGetUint32(
+			prAdapter, "Sta2gBw", MAX_BW_20MHZ);
+	}
+#endif
+
 	prWifiVar->ucSta5gBandwidth = (uint8_t) wlanCfgGetUint32(
 				prAdapter, "Sta5gBw", MAX_BW_80MHZ);
 	/* GC,GO */
@@ -9785,17 +9839,26 @@ void wlanTxProfilingTagPacket(IN struct ADAPTER *prAdapter,
 
 	switch (eTag) {
 	case TX_PROF_TAG_OS_TO_DRV:
-		kalTraceEvent("Xmit id=0x%04x sn=%d",
+		kalTraceEvent("Xmit ipid=0x%04x seq=%d",
+			GLUE_GET_PKT_IP_ID(prPacket),
+			GLUE_GET_PKT_SEQ_NO(prPacket));
+		DBGLOG(TX, TEMP, "Xmit ipid=%d seq=%d\n",
 			GLUE_GET_PKT_IP_ID(prPacket),
 			GLUE_GET_PKT_SEQ_NO(prPacket));
 		break;
 	case TX_PROF_TAG_DRV_ENQUE:
-		kalTraceEvent("Enq id=0x%04x sn=%d",
+		kalTraceEvent("Enq ipid=0x%04x seq=%d",
+			GLUE_GET_PKT_IP_ID(prPacket),
+			GLUE_GET_PKT_SEQ_NO(prPacket));
+		DBGLOG(TX, TEMP, "Enq ipid=%d seq=%d\n",
 			GLUE_GET_PKT_IP_ID(prPacket),
 			GLUE_GET_PKT_SEQ_NO(prPacket));
 		break;
 	case TX_PROF_TAG_DRV_FREE:
-		kalTraceEvent("Cmpl id=0x%04x sn=%d",
+		kalTraceEvent("Cmpl ipid=0x%04x seq=%d",
+			GLUE_GET_PKT_IP_ID(prPacket),
+			GLUE_GET_PKT_SEQ_NO(prPacket));
+		DBGLOG(TX, TEMP, "Cmpl ipid=%d seq=%d\n",
 			GLUE_GET_PKT_IP_ID(prPacket),
 			GLUE_GET_PKT_SEQ_NO(prPacket));
 		break;
@@ -10211,8 +10274,15 @@ struct net_device *wlanGetNetDev(IN struct GLUE_INFO *prGlueInfo,
 		if (prBssInfo && IS_BSS_P2P(prBssInfo)) {
 			prGlueP2pInfo =
 				prGlueInfo->prP2PInfo[prBssInfo->u4PrivateData];
-			if (prGlueP2pInfo)
-				return prGlueP2pInfo->prDevHandler;
+
+			if (prGlueP2pInfo) {
+				if ((prGlueP2pInfo->aprRoleHandler != NULL) &&
+					(prGlueP2pInfo->aprRoleHandler !=
+						prGlueP2pInfo->prDevHandler))
+					return prGlueP2pInfo->aprRoleHandler;
+				else
+					return prGlueP2pInfo->prDevHandler;
+			}
 		}
 	}
 
@@ -11657,10 +11727,25 @@ uint64_t wlanGetSupportedFeatureSet(IN struct GLUE_INFO *prGlueInfo)
 {
 	uint64_t u8FeatureSet = WIFI_HAL_FEATURE_SET;
 	struct REG_INFO *prRegInfo;
+	#ifdef OPLUS_BUG_COMPATIBILITY
+	//Laixin@CONNECTIVITY.WIFI.BASIC.HARDWARE.1130116, 2019/03/22
+	//Add for: inform if DBDC supports
+	struct ADAPTER *prAdapter;
+	#endif /* OPLUS_BUG_COMPATIBILITY */
 
 	prRegInfo = &(prGlueInfo->rRegInfo);
 	if ((prRegInfo != NULL) && (prRegInfo->ucSupport5GBand))
 		u8FeatureSet |= WIFI_FEATURE_INFRA_5G;
+
+	#ifdef OPLUS_BUG_COMPATIBILITY
+	//Laixin@CONNECTIVITY.WIFI.BASIC.HARDWARE.1130116, 2019/03/22
+	//Add for: inform if DBDC supports
+	prAdapter = prGlueInfo->prAdapter;
+    if (prAdapter != NULL &&
+        prAdapter->rWifiVar.eDbdcMode == ENUM_DBDC_MODE_DYNAMIC) {
+		u8FeatureSet |= WIFI_FEATURE_DBDC;
+	}
+	#endif /* OPLUS_BUG_COMPATIBILITY */
 
 	return u8FeatureSet;
 }
@@ -11899,6 +11984,16 @@ int wlanGetMaxTxRate(IN struct ADAPTER *prAdapter,
 	if (ucAPBwPermitted < ucBw)
 		ucBw = ucAPBwPermitted;
 
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	//Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/12/3, add for smart band-width decision
+	//MTK code only check STA cap & AP cap, need check the real assoc BW
+	//@2019/12/4: fgAssoc40mBwAllowed will restore to 0 when connect success, fg40mBwAllowed keep the value
+	DBGLOG(SW4, TRACE, "prBssInfo->fgAssoc40mBwAllowed = %d, prBssInfo->fg40mBwAllowed = %d, prAdapter->rSmartBW.ucSelectBW = %d\n",
+			prBssInfo->fgAssoc40mBwAllowed, prBssInfo->fg40mBwAllowed, prAdapter->rSmartBW.ucSelectBW);
+	if (prAdapter->rSmartBW.smart_bw_params.SELECT_BW_WHEN_CONNECT_FEATRUE_ENABLE &&
+			!prBssInfo->fg40mBwAllowed) ucBw = MAX_BW_20MHZ;
+#endif /* OPLUS_FEATURE_WIFI_SMART_BW */
+
 	/* get Short GI Tx capability */
 	if ((prStaRec->u2HtCapInfo & HT_CAP_INFO_SHORT_GI_20M) ==
 	    HT_CAP_INFO_SHORT_GI_20M) {
@@ -11968,8 +12063,7 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 		 OUT uint32_t *pu4CurRate, OUT uint32_t *pu4MaxRate)
 {
 	struct ADAPTER *prAdapter;
-	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nsts = 0;
-	uint32_t groupid = 0, mu = 0;
+	uint32_t rxmode = 0, rate = 0, frmode = 0, sgi = 0, nss = 0;
 	uint32_t u4RxVector0 = 0, u4RxVector1 = 0;
 	uint8_t ucWlanIdx, ucStaIdx;
 	int rv;
@@ -12004,15 +12098,11 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 	rxmode = (u4RxVector0 & RX_VT_RX_MODE_MASK) >> RX_VT_RX_MODE_OFFSET;
 	rate = (u4RxVector0 & RX_VT_RX_RATE_MASK) >> RX_VT_RX_RATE_OFFSET;
 	frmode = (u4RxVector0 & RX_VT_FR_MODE_MASK) >> RX_VT_FR_MODE_OFFSET;
-	nsts = ((u4RxVector1 & RX_VT_NSTS_MASK) >> RX_VT_NSTS_OFFSET);
+	nss = ((u4RxVector0 & RX_VT_NUM_RX_MASK) >> RX_VT_NUM_RX_OFFSET);
 	sgi = u4RxVector0 & RX_VT_SHORT_GI;
-	groupid = (u4RxVector1 & RX_VT_GROUP_ID_MASK) >> RX_VT_GROUP_ID_OFFSET;
-	if (groupid && groupid != 63) {
-		mu = 1;
-	} else {
-		mu = 0;
-		nsts += 1;
-	}
+
+	/*0 means 1R, 1 means 2R ...*/
+	nss += 1;
 	sgi = (sgi == 0) ? 0 : 1;
 	if (frmode >= 4) {
 		DBGLOG(SW4, ERROR, "frmode error: %u\n", frmode);
@@ -12020,11 +12110,10 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 	}
 
 	DBGLOG(SW4, TRACE,
-		   "rxmode=[%u], rate=[%u], bandwidth=[%u], sgi=[%u], nsts=[%u]\n",
-		   rxmode, rate, frmode, sgi, nsts
-	);
+	       "rxmode=%u rate=%u bandwidth=%u sgi=%u nss=%u\n",
+	       rxmode, rate, frmode, sgi, nss);
 
-	rv = wlanQueryRateByTable(rxmode, rate, frmode, sgi, nsts,
+	rv = wlanQueryRateByTable(rxmode, rate, frmode, sgi, nss,
 				 pu4CurRate, pu4MaxRate);
 	if (rv < 0)
 		goto errhandle;
@@ -12034,8 +12123,8 @@ int wlanGetRxRate(IN struct GLUE_INFO *prGlueInfo,
 errhandle:
 	/* soc3_0 known issue */
 	DBGLOG(SW4, TRACE,
-		"u4RxVector0=[%x], u4RxVector1=[%x], rxmode=[%u], rate=[%u], frmode=[%u], sgi=[%u], nsts=[%u]\n",
-		u4RxVector0, u4RxVector1, rxmode, rate, frmode, sgi, nsts
+		"u4RxVector0=[%x], u4RxVector1=[%x], rxmode=[%u], rate=[%u], frmode=[%u], sgi=[%u], nss=[%u]\n",
+		u4RxVector0, u4RxVector1, rxmode, rate, frmode, sgi, nss
 	);
 	return -1;
 }
@@ -12050,6 +12139,11 @@ uint32_t wlanLinkQualityMonitor(struct GLUE_INFO *prGlueInfo, bool bFgIsOid)
 	uint8_t arBssid[PARAM_MAC_ADDR_LEN];
 	uint32_t u4Status = WLAN_STATUS_FAILURE;
 	uint8_t ucBssIndex = AIS_DEFAULT_INDEX;
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/6/28, for smart band-width decision */
+	int payload[5];
+	int idleSlotRatio = 0;
+#endif
 
 	if (kalGetMediaStateIndicated(prGlueInfo,
 		ucBssIndex) !=
@@ -12105,7 +12199,13 @@ uint32_t wlanLinkQualityMonitor(struct GLUE_INFO *prGlueInfo, bool bFgIsOid)
 #if CFG_SUPPORT_DATA_STALL
 	wlanCustomMonitorFunction(prAdapter, prLinkQualityInfo, ucBssIndex);
 #endif
-
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/6/28, for smart band-width decision, porting from MTK @7/18, add AwakeDur for LinkQuality*/
+	/* Just get 100% ratio, so it caculate as: (100 * (slottime * 9/1000))/scan duration */
+	/* So it's (slottime * 9) / (10 * scan duration(ms) ) */
+	if (prLinkQualityInfo->u4HwMacAwakeDuration) {
+			idleSlotRatio = (prLinkQualityInfo->u8DiffIdleSlotCount * 9) / (10 * prLinkQualityInfo->u4HwMacAwakeDuration);
+	}
 	DBGLOG(SW4, INFO,
 	       "Link Quality: Tx(rate:%u, total:%lu, retry:%lu, fail:%lu, RTS fail:%lu, ACK fail:%lu), Rx(rate:%u, total:%lu, dup:%u, error:%lu), PER(%u), Congestion(idle slot:%lu, diff:%lu, AwakeDur:%u)\n",
 	       prLinkQualityInfo->u4CurTxRate, /* current tx link speed */
@@ -12122,8 +12222,25 @@ uint32_t wlanLinkQualityMonitor(struct GLUE_INFO *prGlueInfo, bool bFgIsOid)
 	       /* congestion stats */
 	       prLinkQualityInfo->u8IdleSlotCount, /* idle slot */
 	       prLinkQualityInfo->u8DiffIdleSlotCount, /* idle slot diff */
-	       prLinkQualityInfo->u4HwMacAwakeDuration
-	);
+	       prLinkQualityInfo->u4HwMacAwakeDuration,
+           idleSlotRatio
+		);
+#endif
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+		/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/6/28, for smart band-width decision */
+		if (prAdapter->rSmartBW.fgIsNeedMonitorAPIOT || prAdapter->rSmartBW.fgIsNeedMonitorLink) {
+				DBGLOG(SW4, INFO,"fgIsNeedMonitorAPIOT: %d, fgIsNeedMonitorLinkTx: %d\n",
+						prAdapter->rSmartBW.fgIsNeedMonitorAPIOT, prAdapter->rSmartBW.fgIsNeedMonitorLink);
+				prLinkQualityInfo->rRecordLQSysTime = kalGetTimeTick();
+				get_L3_LQ_status(payload, sizeof(payload)/sizeof(payload[0]));
+				prLinkQualityInfo->iL3CSpeed = payload[1];
+				prLinkQualityInfo->iL3CongestionFlag = payload[3];
+				wlanSaveLinkQualitySmooth(prLinkQualityInfo);
+
+				wlanMonitorAPIOTIssue();
+				wlanMonitorLQStatus();
+		}
+#endif
 
 	return u4Status;
 }
@@ -12135,6 +12252,10 @@ void wlanFinishCollectingLinkQuality(struct GLUE_INFO *prGlueInfo)
 	uint32_t u4CurRxRate, u4MaxRxRate;
 	uint64_t u8TxFailCntDif, u8TxTotalCntDif;
 
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/6/7, add for smart band-width decision */
+	unsigned long long  u8TxRetryCntDif, u8RxTotalCntDif, u8RxErrCntDif;
+#endif
 	prAdapter = prGlueInfo->prAdapter;
 	if (prAdapter == NULL) {
 		DBGLOG(SW4, ERROR, "prAdapter is null\n");
@@ -12182,6 +12303,35 @@ void wlanFinishCollectingLinkQuality(struct GLUE_INFO *prGlueInfo)
 					prLinkQualityInfo->u8TxFailCount;
 	prLinkQualityInfo->u8LastIdleSlotCount =
 					prLinkQualityInfo->u8IdleSlotCount;
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/6/7, add for smart band-width decision */
+	/* Check packet diff purpose */
+	u8TxRetryCntDif = (prLinkQualityInfo->u8TxRetryCount >
+		   prLinkQualityInfo->u8LastTxRetryCount) ?
+		  (prLinkQualityInfo->u8TxRetryCount -
+		   prLinkQualityInfo->u8LastTxRetryCount) : 0;
+	u8RxTotalCntDif = (prLinkQualityInfo->u8RxTotalCount >
+		  prLinkQualityInfo->u8LastRxTotalCount) ?
+		 (prLinkQualityInfo->u8RxTotalCount -
+		  prLinkQualityInfo->u8LastRxTotalCount) : 0;
+	u8RxErrCntDif = (prLinkQualityInfo->u8RxErrCount >
+		  prLinkQualityInfo->u8LastRxErrCount) ?
+		 (prLinkQualityInfo->u8RxErrCount -
+		  prLinkQualityInfo->u8LastRxErrCount) : 0;
+
+	prLinkQualityInfo->u8LastTxRetryCount = prLinkQualityInfo->u8TxRetryCount;
+	prLinkQualityInfo->u8LastRxTotalCount = prLinkQualityInfo->u8RxTotalCount;
+	prLinkQualityInfo->u8LastRxErrCount = prLinkQualityInfo->u8RxErrCount;
+
+DBGLOG(SW4, TRACE,
+	   "Link Quality: Tx(u8TxTotalCntDif:%lu, u8TxFailCntDif:%lu, u8TxRetryCntDif:%lu), Rx(u8RxTotalCntDif:%lu, u8RxErrCntDif:%lu)\n",
+	   u8TxTotalCntDif,
+	   u8TxFailCntDif,
+	   u8TxRetryCntDif,
+	   u8RxTotalCntDif,
+	   u8RxErrCntDif
+);
+#endif
 }
 #endif /* CFG_SUPPORT_LINK_QUALITY_MONITOR */
 
@@ -12294,7 +12444,7 @@ void
 wlanResoreEmCfgSetting(IN struct ADAPTER *
 	prAdapter)
 {
-	uint8_t i;
+	uint32_t i;
 
 	for (i = 0; i < WLAN_CFG_ENTRY_NUM_MAX; i++) {
 
@@ -12319,7 +12469,7 @@ void
 wlanBackupEmCfgSetting(IN struct ADAPTER *
 	prAdapter)
 {
-	uint8_t i;
+	uint32_t i;
 	struct WLAN_CFG_ENTRY *prWlanCfgEntry = NULL;
 
 	kalMemZero(&g_rEmCfgBk, sizeof(g_rEmCfgBk));
@@ -12358,7 +12508,7 @@ void
 wlanCleanAllEmCfgSetting(IN struct ADAPTER *
 	prAdapter)
 {
-	uint8_t i;
+	uint32_t i;
 	struct WLAN_CFG_ENTRY *prWlanCfgEntry = NULL;
 
 	for (i = 0; i < WLAN_CFG_ENTRY_NUM_MAX; i++) {
@@ -12388,3 +12538,57 @@ u_int8_t wlanWfdEnabled(struct ADAPTER *prAdapter)
 	return FALSE;
 }
 
+int wlanChipConfig(struct ADAPTER *prAdapter,
+	char *pcCommand, int i4TotalLen)
+{
+	uint32_t rStatus = WLAN_STATUS_SUCCESS;
+	int32_t i4BytesWritten = 0;
+	uint32_t u4BufLen = 0;
+	uint32_t u2MsgSize = 0;
+	uint32_t u4CmdLen = 0;
+	struct PARAM_CUSTOM_CHIP_CONFIG_STRUCT rChipConfigInfo = {0};
+
+	if (prAdapter == NULL) {
+		DBGLOG(REQ, ERROR, "prAdapter null");
+		return -1;
+	}
+	DBGLOG(REQ, LOUD, "command is %s\n", pcCommand);
+
+	u4CmdLen = kalStrnLen(pcCommand, i4TotalLen);
+
+	rChipConfigInfo.ucType = CHIP_CONFIG_TYPE_ASCII;
+	rChipConfigInfo.u2MsgSize = u4CmdLen;
+	kalStrnCpy(rChipConfigInfo.aucCmd, pcCommand,
+		   CHIP_CONFIG_RESP_SIZE - 1);
+	rChipConfigInfo.aucCmd[CHIP_CONFIG_RESP_SIZE - 1] = '\0';
+	rStatus = kalIoctl(prAdapter->prGlueInfo, wlanoidQueryChipConfig,
+		&rChipConfigInfo, sizeof(rChipConfigInfo),
+		TRUE, TRUE, TRUE, &u4BufLen);
+
+	if (rStatus != WLAN_STATUS_SUCCESS) {
+		DBGLOG(REQ, ERROR, "%s: kalIoctl ret=%d\n", __func__,
+		       rStatus);
+		return -1;
+	}
+	rChipConfigInfo.aucCmd[CHIP_CONFIG_RESP_SIZE - 1] = '\0';
+
+	/* Check respType */
+	u2MsgSize = rChipConfigInfo.u2MsgSize;
+	DBGLOG(REQ, INFO, "%s: RespTyep  %u\n", __func__,
+	       rChipConfigInfo.ucRespType);
+	DBGLOG(REQ, INFO, "%s: u2MsgSize %u\n", __func__,
+	       rChipConfigInfo.u2MsgSize);
+
+	if (rChipConfigInfo.ucRespType != CHIP_CONFIG_TYPE_ASCII) {
+		DBGLOG(REQ, WARN, "only return as ASCII");
+		return -1;
+	}
+	if (u2MsgSize > sizeof(rChipConfigInfo.aucCmd)) {
+		DBGLOG(REQ, INFO, "%s: u2MsgSize error ret=%u\n",
+		       __func__, rChipConfigInfo.u2MsgSize);
+		return -1;
+	}
+	i4BytesWritten = snprintf(pcCommand, i4TotalLen, "%s",
+		     rChipConfigInfo.aucCmd);
+	return i4BytesWritten;
+}

@@ -73,6 +73,11 @@
  */
 #include "precomp.h"
 #include "gl_ate_agent.h"
+#ifdef OPLUS_BUG_STABILITY
+//WuJie@CONNECTIVITY.WIFI.BASIC.P2P.2298648, 2020/06/18,
+//Add for: P2P event statistics
+#include <linux/oplus_kevent.h>
+#endif /* OPLUS_BUG_STABILITY */
 
 /*******************************************************************************
  *                              C O N S T A N T S
@@ -105,6 +110,7 @@ const struct NIC_CAPABILITY_V2_REF_TABLE
 #if (CFG_SUPPORT_P2PGO_ACS == 1)
 	{TAG_CAP_P2P, nicCfgChipP2PCap},
 #endif
+	{TAG_CAP_HOST_STATUS_EMI_OFFSET, nicCmdEventHostStatusEmiOffset},
 
 };
 
@@ -112,6 +118,11 @@ const struct NIC_CAPABILITY_V2_REF_TABLE
  *                             D A T A   T Y P E S
  *******************************************************************************
  */
+#ifdef OPLUS_BUG_STABILITY
+//WuJie@CONNECTIVITY.WIFI.BASIC.P2P.2298648, 2020/06/18,
+//Add for: P2P event statistics
+#define LINK_SCORE_PRINT_COUNT 40
+#endif /* OPLUS_BUG_STABILITY */
 
 /*******************************************************************************
  *                            P U B L I C   D A T A
@@ -119,6 +130,16 @@ const struct NIC_CAPABILITY_V2_REF_TABLE
  */
 struct MIB_INFO_STAT g_arMibInfo[ENUM_BAND_NUM];
 uint8_t fgEfuseCtrlAxOn = 1; /* run time control if support AX by efuse */
+#ifdef OPLUS_BUG_STABILITY
+//WuJie@CONNECTIVITY.WIFI.BASIC.P2P.2298648, 2020/06/18,
+//Add for: P2P event statistics
+uint32_t u4StatisticalCount = LINK_SCORE_PRINT_COUNT;
+uint32_t u4ScoreSum = 0;
+uint32_t u4RssiSum = 0;
+uint32_t u4RateSum = 0;
+uint32_t u4ThresholdCntSum = 0;
+uint32_t u4FailCntSum = 0;
+#endif /* OPLUS_BUG_STABILITY */
 
 
 /*******************************************************************************
@@ -975,8 +996,7 @@ void nicCmdEventQueryStatistics(IN struct ADAPTER
 	prLinkQualityInfo->u8TxAckFailCount =
 		prStatistics->rACKFailureCount.QuadPart;
 	prLinkQualityInfo->u8TxFailCount =
-		prLinkQualityInfo->u8TxRtsFailCount +
-		prLinkQualityInfo->u8TxAckFailCount;
+		prStatistics->rFailedCount.QuadPart;
 	prLinkQualityInfo->u8TxTotalCount =
 		prStatistics->rTransmittedFragmentCount.QuadPart;
 
@@ -2406,6 +2426,37 @@ void nicCmdEventBuildDateCode(IN struct ADAPTER *prAdapter,
 }
 #endif
 
+#ifdef OPLUS_BUG_STABILITY
+//WuJie@CONNECTIVITY.WIFI.BASIC.P2P.2298648, 2020/06/18,
+//Add for: P2P event statistics
+void kalWCNKeyLogWrite(IN const char *log)
+{
+	struct kernel_packet_info *user_msg_info;
+	char log_tag_scn[32] = "wifi_fool_proof";
+	char event_id_p2p_link_info[20] = "P2p_Link_Info";
+
+	void* buffer = NULL;
+	int log_len = strlen(log);
+	int kevent_size;
+
+	kevent_size = sizeof(struct kernel_packet_info) + log_len + 1;   /* extra + 1 for '\0' */
+	DBGLOG(SW4, TRACE, "kevent_send_to_user, size=%d, passed in log: %s\n", kevent_size, log);
+
+	buffer = kmalloc(kevent_size, GFP_ATOMIC);
+	memset(buffer, 0, kevent_size);
+	user_msg_info = (struct kernel_packet_info *)buffer;
+	user_msg_info->type = 1;
+
+	snprintf(user_msg_info->log_tag, sizeof(user_msg_info->log_tag), "%s", log_tag_scn);
+	snprintf(user_msg_info->event_id, sizeof(user_msg_info->event_id), "%s", event_id_p2p_link_info);
+	snprintf(user_msg_info->payload, log_len + 1, "%s", log);
+	user_msg_info->payload_length = log_len + 1;
+
+	kevent_send_to_user(user_msg_info);
+	kfree(buffer);
+}
+#endif /* OPLUS_BUG_STABILITY */
+
 /*----------------------------------------------------------------------------*/
 /*!
  * @brief This function is called when event for query STA link status
@@ -2433,6 +2484,11 @@ void nicCmdEventQueryStaStatistics(IN struct ADAPTER
 #ifdef CFG_SUPPORT_LINK_QUALITY_MONITOR
 	struct WIFI_LINK_QUALITY_INFO *prLinkQualityInfo;
 #endif
+#ifdef OPLUS_BUG_STABILITY
+	//WuJie@CONNECTIVITY.WIFI.BASIC.P2P.2298648, 2020/06/18,
+	//Add for: P2P event statistics
+	char buf[512];
+#endif /* OPLUS_BUG_STABILITY */
 
 	ASSERT(prAdapter);
 	ASSERT(prCmdInfo);
@@ -2671,6 +2727,32 @@ void nicCmdEventQueryStaStatistics(IN struct ADAPTER
 				prStaStatistics->u4TxAverageProcessTime,
 				prStaStatistics->u4TxAverageAirTime,
 				prStaStatistics->u4TxTotalCount);
+#ifdef OPLUS_BUG_STABILITY
+			//WuJie@CONNECTIVITY.WIFI.BASIC.P2P.2298648, 2020/06/18,
+			//Add for: P2P event statistics
+			if (u4StatisticalCount > 0) {
+				u4ScoreSum += u4LinkScore;
+				u4RssiSum += prStaStatistics->ucRcpi;
+				u4RateSum += prStaStatistics->u2LinkSpeed;
+				u4ThresholdCntSum += prStaStatistics->u4TxExceedThresholdCount;
+				u4FailCntSum += prStaStatistics->u4TxFailCount;
+				u4StatisticalCount--;
+			} else {
+				snprintf(buf, sizeof(buf), "[P2P]: link_score=%u, rssi=%u, rate=%u, threshold_cnt=%u, fail_cnt=%u\n",
+					u4ScoreSum/LINK_SCORE_PRINT_COUNT,
+					u4RssiSum/LINK_SCORE_PRINT_COUNT,
+					u4RateSum/LINK_SCORE_PRINT_COUNT,
+					u4ThresholdCntSum/LINK_SCORE_PRINT_COUNT,
+					u4FailCntSum/LINK_SCORE_PRINT_COUNT);
+				kalWCNKeyLogWrite(buf);
+				u4StatisticalCount = LINK_SCORE_PRINT_COUNT;
+				u4ScoreSum = 0;
+				u4RssiSum = 0;
+				u4RateSum = 0;
+				u4ThresholdCntSum = 0;
+				u4FailCntSum = 0;
+			}
+#endif /* OPLUS_BUG_STABILITY */
 		}
 #endif
 #endif
@@ -3172,6 +3254,21 @@ uint32_t nicCfgChipP2PCap(IN struct ADAPTER *prAdapter,
 	return WLAN_STATUS_SUCCESS;
 	}
 #endif
+
+uint32_t nicCmdEventHostStatusEmiOffset(IN struct ADAPTER *prAdapter,
+					IN uint8_t *pucEventBuf)
+{
+	struct NIC_HOST_STATUS_EMI_OFFSET *prOffset =
+		(struct NIC_HOST_STATUS_EMI_OFFSET *)pucEventBuf;
+
+	prAdapter->u4HostStatusEmiOffset = prOffset->u4EmiOffset;
+
+	DBGLOG(INIT, INFO,
+	       "EMI offset= %x\n",
+	       prAdapter->u4HostStatusEmiOffset);
+
+	return WLAN_STATUS_SUCCESS;
+}
 
 uint32_t nicCfgChipCapMacCap(IN struct ADAPTER *prAdapter,
 			     IN uint8_t *pucEventBuf)
@@ -4568,7 +4665,7 @@ bool nicBeaconTimeoutFilterPolicy(IN struct ADAPTER *prAdapter,
 	prTxCtrl = &prAdapter->rTxCtrl;
 	ASSERT(prTxCtrl);
 
-	GET_CURRENT_SYSTIME(&u4CurrentTime);
+	GET_BOOT_SYSTIME(&u4CurrentTime);
 
 	DBGLOG(NIC, INFO,
 			"u4MonitorWindow: %d, u4CurrentTime: %d, u4LastRxTime: %d, u4LastTxTime: %d",

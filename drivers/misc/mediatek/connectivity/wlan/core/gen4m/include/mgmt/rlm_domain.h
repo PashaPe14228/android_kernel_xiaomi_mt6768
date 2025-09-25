@@ -930,6 +930,18 @@ struct SUBBAND_CHANNEL {
 	uint8_t ucReserved;
 };
 
+#ifdef VENDOR_EDIT
+//Lei.Zhang@PSW.CN.WiFi.Basic.Hardware.1065227, 2020/07/17,
+//Add for distinguish country power limit at runtime.
+
+struct oplus_country_pwr_limit_he {
+    uint16_t project;
+    uint16_t tableSize;
+    struct COUNTRY_POWER_LIMIT_TABLE_CONFIGURATION_HE *pwrLimitTableHE;
+};
+
+#endif
+
 #endif /* CFG_SUPPORT_PWR_LIMIT_COUNTRY */
 
 #if (CFG_SUPPORT_SINGLE_SKU == 1)
@@ -977,6 +989,17 @@ struct mtk_regd_control {
 struct mtk_regdomain {
 	char country_code[4];
 	const struct ieee80211_regdomain *prRegdRules;
+};
+#endif
+
+#ifdef VENDOR_EDIT
+//Lei.Zhang@PSW.CN.WiFi.Basic.Hardware.1065227, 2020/07/17,
+//Add for distinguish country power limit at runtime.
+// Honggen.Fan@PSW.CN.WiFi.Basic.Project name with letters required, 2021/03/31
+struct oplus_country_pwr_limit {
+    uint32_t project;
+    uint16_t tableSize;
+    struct COUNTRY_POWER_LIMIT_TABLE_CONFIGURATION *pwrLimitTable;
 };
 #endif
 

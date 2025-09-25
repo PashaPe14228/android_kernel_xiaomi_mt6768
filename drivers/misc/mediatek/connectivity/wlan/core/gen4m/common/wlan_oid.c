@@ -1417,6 +1417,29 @@ wlanoidSetConnect(IN struct ADAPTER *prAdapter,
 		}
 	}
 
+	/* Check former assocIE to prevent memory leakage in situations like
+	* upper layer requests connection without disconnecting first, ...
+	*/
+	if (prConnSettings->assocIeLen > 0) {
+		kalMemFree(prConnSettings->pucAssocIEs, VIR_MEM_TYPE,
+			prConnSettings->assocIeLen);
+		prConnSettings->assocIeLen = 0;
+	}
+
+	if (pParamConn->u4IesLen > 0) {
+		prConnSettings->assocIeLen = pParamConn->u4IesLen;
+		prConnSettings->pucAssocIEs =
+			kalMemAlloc(prConnSettings->assocIeLen, VIR_MEM_TYPE);
+		if (prConnSettings->pucAssocIEs) {
+			kalMemCopy(prConnSettings->pucAssocIEs,
+				pParamConn->pucIEs, prConnSettings->assocIeLen);
+		} else {
+			DBGLOG(INIT, INFO,
+				"allocate memory for prConnSettings->pucAssocIEs failed!\n");
+				prConnSettings->assocIeLen = 0;
+		}
+	}
+
 	if (fgEqualSsid || fgEqualBssid)
 		prAisAbortMsg->fgDelayIndication = TRUE;
 	else
@@ -3151,6 +3174,9 @@ wlanoidSetRemoveKey(IN struct ADAPTER *prAdapter,
 			}
 			ASSERT(prBssInfo->wepkeyWlanIdx < WTBL_SIZE);
 			ucRemoveBCKeyAtIdx = prBssInfo->wepkeyWlanIdx;
+			secPrivacyFreeForEntry(prAdapter,
+					prBssInfo->wepkeyWlanIdx);
+			prBssInfo->wepkeyWlanIdx = WTBL_RESERVED_ENTRY;
 		} else {
 			DBGLOG(RSN, INFO, "Remove group key id = %d",
 			       u4KeyIndex);
@@ -3167,6 +3193,13 @@ wlanoidSetRemoveKey(IN struct ADAPTER *prAdapter,
 						u4KeyIndex] < WTBL_SIZE);
 				ucRemoveBCKeyAtIdx =
 					prBssInfo->ucBMCWlanIndexS[u4KeyIndex];
+
+				secPrivacyFreeForEntry(prAdapter,
+				    prBssInfo->ucBMCWlanIndexS[u4KeyIndex]);
+				prBssInfo->ucBMCWlanIndexSUsed[u4KeyIndex]
+					= FALSE;
+				prBssInfo->ucBMCWlanIndexS[u4KeyIndex]
+					= WTBL_RESERVED_ENTRY;
 			}
 		}
 
@@ -3458,6 +3491,13 @@ wlanoidQueryEncryptionStatus(IN struct ADAPTER *prAdapter,
 		prAisBssInfo->fgBcDefaultKeyExist;
 
 	switch (prConnSettings->eEncStatus) {
+	case ENUM_ENCRYPTION4_ENABLED:
+		if (fgTransmitKeyAvailable)
+			eEncStatus = ENUM_ENCRYPTION4_ENABLED;
+		else
+			eEncStatus = ENUM_ENCRYPTION4_KEY_ABSENT;
+		break;
+
 	case ENUM_ENCRYPTION3_ENABLED:
 		if (fgTransmitKeyAvailable)
 			eEncStatus = ENUM_ENCRYPTION3_ENABLED;
@@ -3592,6 +3632,13 @@ wlanoidSetEncryptionStatus(IN struct ADAPTER *prAdapter,
 		DBGLOG(RSN, INFO, "Enable Encryption3\n");
 		break;
 
+	case ENUM_ENCRYPTION4_ENABLED: /* Eanble GCMP256 */
+		secSetCipherSuite(prAdapter,
+				  CIPHER_FLAG_CCMP | CIPHER_FLAG_GCMP256,
+				  ucBssIndex);
+		DBGLOG(RSN, INFO, "Enable Encryption4\n");
+		break;
+
 	default:
 		DBGLOG(RSN, INFO, "Unacceptible encryption status: %d\n",
 		       *(enum ENUM_WEP_STATUS *) pvSetBuffer);
@@ -3650,7 +3697,7 @@ wlanoidQueryCapability(IN struct ADAPTER *prAdapter,
 
 	prCap->u4Length = *pu4QueryInfoLen;
 	prCap->u4Version = 2;	/* WPA2 */
-	prCap->u4NoOfAuthEncryptPairsSupported = 14;
+	prCap->u4NoOfAuthEncryptPairsSupported = 15;
 
 	prAuthenticationEncryptionSupported =
 		&prCap->arAuthenticationEncryptionSupported[0];
@@ -3726,6 +3773,11 @@ wlanoidQueryCapability(IN struct ADAPTER *prAdapter,
 		AUTH_MODE_WPA2_PSK;
 	prAuthenticationEncryptionSupported[13].eEncryptStatusSupported
 		= ENUM_ENCRYPTION3_ENABLED;
+
+	prAuthenticationEncryptionSupported[14].eAuthModeSupported
+		= AUTH_MODE_WPA2_PSK;
+	prAuthenticationEncryptionSupported[14].eEncryptStatusSupported
+		= ENUM_ENCRYPTION4_ENABLED;
 
 	return WLAN_STATUS_SUCCESS;
 
@@ -16404,7 +16456,7 @@ wlanoidExternalAuthDone(IN struct ADAPTER *prAdapter,
 	prStaRec = cnmGetStaRecByAddress(prAdapter, ucBssIndex, params->bssid);
 	if (!prStaRec) {
 		DBGLOG(REQ, WARN, "SAE-confirm failed with bssid:" MACSTR "\n",
-		       params->bssid);
+		       MAC2STR(params->bssid));
 		return WLAN_STATUS_INVALID_DATA;
 	}
 
@@ -16424,7 +16476,10 @@ wlanoidIndicateBssInfo(IN struct ADAPTER *prAdapter,
 			   OUT uint32_t *pu4SetInfoLen)
 {
 	struct GLUE_INFO *prGlueInfo;
-	struct BSS_DESC **pprBssDesc = NULL;
+	struct BSS_DESC **pprBssDesc = (struct BSS_DESC **)
+		kalMemAlloc(sizeof(struct BSS_DESC),
+				VIR_MEM_TYPE);
+	struct SCAN_INFO *prScanInfo;
 	uint32_t rStatus = WLAN_STATUS_SUCCESS;
 	uint8_t i = 0;
 
@@ -16433,7 +16488,9 @@ wlanoidIndicateBssInfo(IN struct ADAPTER *prAdapter,
 	ASSERT(prAdapter);
 
 	prGlueInfo = prAdapter->prGlueInfo;
-	pprBssDesc = &prAdapter->rWifiVar.rScanInfo.rSchedScanParam.
+	prScanInfo = &(prAdapter->rWifiVar.rScanInfo);
+
+	pprBssDesc = &prScanInfo->rSchedScanParam.
 		     aprPendingBssDescToInd[0];
 
 	for (; i < SCN_SSID_MATCH_MAX_NUM; i++) {
@@ -16448,7 +16505,7 @@ wlanoidIndicateBssInfo(IN struct ADAPTER *prAdapter,
 				   RCPI_TO_dBm(pprBssDesc[i]->ucRCPI));
 	}
 	DBGLOG(SCN, INFO, "pending %d sched scan results\n", i);
-	if (i > 0)
+	if ((i  > 0) && (pprBssDesc[0] != NULL))
 		kalMemZero(&pprBssDesc[0], i * sizeof(struct BSS_DESC *));
 
 	return rStatus;

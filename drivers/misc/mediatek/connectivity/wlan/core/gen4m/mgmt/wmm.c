@@ -855,8 +855,8 @@ void wmmStartTsmMeasurement(struct ADAPTER *prAdapter, unsigned long ulParam,
 	}
 	prStaRec = prAisBssInfo->prStaRecOfAP;
 	if (!prStaRec) {
-		DBGLOG(WMM, INFO, "No station record found for %pM\n",
-		       prTsmReq->aucPeerAddr);
+		DBGLOG(WMM, INFO, "No station record found for "MACSTR"\n",
+			MAC2STR(prTsmReq->aucPeerAddr));
 		cnmMemFree(prAdapter, prTsmReq);
 		rrmScheduleNextRm(prAdapter,
 			ucBssIndex);
@@ -1146,6 +1146,12 @@ u_int8_t wmmParseTspecIE(struct ADAPTER *prAdapter, uint8_t *pucIE,
 		struct IE_WMM_TSPEC *prIeWmmTspec =
 			(struct IE_WMM_TSPEC *)pucIE;
 		uint8_t aucWfaOui[] = VENDOR_OUI_WFA;
+
+		/* WMM TSPEC length */
+		if (prIeWmmTspec->ucLength < ELEM_MAX_LEN_WMM_TSPEC) {
+			DBGLOG(WMM, INFO, "Abnormal IE length\n");
+			return FALSE;
+		}
 
 		if (prIeWmmTspec->ucId != ELEM_ID_VENDOR ||
 		    kalMemCmp(prIeWmmTspec->aucOui, aucWfaOui,
@@ -1455,8 +1461,9 @@ uint32_t wmmDumpActiveTspecs(struct ADAPTER *prAdapter, uint8_t *pucBuffer,
 		if (prStaRec) {
 			i4BytesWritten += kalSnprintf(
 				pucBuffer + i4BytesWritten, u2BufferLen,
-				"\nACM status for AP %pM:\nBE %d; BK %d; VI %d; VO %d\n",
-				prStaRec->aucMacAddr,
+				"\nACM status for AP "MACSTR
+				":\nBE %d; BK %d; VI %d; VO %d\n",
+				MAC2STR(prStaRec->aucMacAddr),
 				prStaRec->afgAcmRequired[ACI_BE],
 				prStaRec->afgAcmRequired[ACI_BK],
 				prStaRec->afgAcmRequired[ACI_VI],

@@ -91,6 +91,11 @@
 #if CFG_MTK_MCIF_WIFI_SUPPORT
 #include "mddp.h"
 #endif
+#ifdef OPLUS_BUG_COMPATIBILITY
+//Jian.Wang@PSW.CN.WiFi.BASIC.HARDWARE.1653741, 2019/12/10,
+//Add for distinguish wifi.cfg at runtime.
+#include <soc/oplus/system/oppo_project.h>
+#endif /* OPLUS_BUG_COMPATIBILITY */
 /*******************************************************************************
  *                              C O N S T A N T S
  *******************************************************************************
@@ -194,6 +199,11 @@ EXPORT_SYMBOL(gConEmiPhyBase);
 
 unsigned long long gConEmiSize;
 EXPORT_SYMBOL(gConEmiSize);
+#endif
+
+#if CFG_MTK_ANDROID_EMI
+phys_addr_t gConEmiPhyBaseFinal;
+unsigned long long gConEmiSizeFinal;
 #endif
 
 int CFG80211_Suspend(struct wiphy *wiphy,
@@ -386,6 +396,10 @@ const uint32_t mtk_cipher_suites[] = {
 
 	/* keep last -- depends on hw flags! */
 	WLAN_CIPHER_SUITE_AES_CMAC,
+	WLAN_CIPHER_SUITE_GCMP_256,
+	WLAN_CIPHER_SUITE_BIP_GMAC_256, /* TODO, HW not support,
+					* SW should handle integrity check
+					*/
 	WLAN_CIPHER_SUITE_NO_GROUP_ADDR
 };
 
@@ -1595,7 +1609,7 @@ struct net_device_stats *wlanGetStats(IN struct net_device
 	mddpGetMdStats(prDev);
 #endif
 
-	return (struct net_device_stats *) kalGetStats(prDev);
+	return (struct net_device_stats *) &prNetDevPrivate->stats;
 }				/* end of wlanGetStats() */
 
 void wlanDebugInit(void)
@@ -1797,10 +1811,14 @@ static int wlanStop(struct net_device *prDev)
 
 	prGlueInfo = *((struct GLUE_INFO **) netdev_priv(prDev));
 
-	/* CFG80211 down */
+	/* CFG80211 down, report to kernel directly and run normal
+	*  scan abort procedure
+	*/
 	GLUE_ACQUIRE_SPIN_LOCK(prGlueInfo, SPIN_LOCK_NET_DEV);
 	if (prGlueInfo->prScanRequest) {
 		kalCfg80211ScanDone(prGlueInfo->prScanRequest, TRUE);
+		aisFsmStateAbort_SCAN(prGlueInfo->prAdapter,
+					wlanGetBssIdx(prDev));
 		prGlueInfo->prScanRequest = NULL;
 	}
 	GLUE_RELEASE_SPIN_LOCK(prGlueInfo, SPIN_LOCK_NET_DEV);
@@ -3337,12 +3355,35 @@ void wlanGetConfig(struct ADAPTER *prAdapter)
 	uint8_t *pucConfigBuf;
 	uint32_t u4ConfigReadLen;
 
+	#ifdef OPLUS_BUG_COMPATIBILITY
+	//Jian.Wang@PSW.CN.WiFi.BASIC.HARDWARE.1653741, 2019/12/10,
+	//Add for distinguish wifi.cfg at runtime.
+	int u4PrjName = get_project();
+	char u2WlanFwFilePath[100] = {"0"};
+	#endif /* OPLUS_BUG_COMPATIBILITY */
+
 	wlanCfgInit(prAdapter, NULL, 0, 0);
 	pucConfigBuf = (uint8_t *) kalMemAlloc(
 			       WLAN_CFG_FILE_BUF_SIZE, VIR_MEM_TYPE);
 	kalMemZero(pucConfigBuf, WLAN_CFG_FILE_BUF_SIZE);
+
+	#ifdef OPLUS_BUG_COMPATIBILITY
+	//Jian.Wang@PSW.CN.WiFi.BASIC.HARDWARE.1653741, 2019/12/10,
+	//Add for distinguish wifi.cfg at runtime.
+	snprintf(u2WlanFwFilePath, sizeof(u2WlanFwFilePath), "%s%d%s", "wifi_", u4PrjName, ".cfg");
+	#endif /* OPLUS_BUG_COMPATIBILITY */
+
 	u4ConfigReadLen = 0;
 	if (pucConfigBuf) {
+		#ifdef OPLUS_BUG_COMPATIBILITY
+		//Jian.Wang@PSW.CN.WiFi.BASIC.HARDWARE.1653741, 2019/12/10,
+		//Add for distinguish wifi.cfg at runtime.
+		if  (kalRequestFirmware(u2WlanFwFilePath, pucConfigBuf,
+			   WLAN_CFG_FILE_BUF_SIZE, &u4ConfigReadLen,
+			   prAdapter->prGlueInfo->prDev) == 0) {
+			/* ToDo:: Nothing */
+		} else
+		#endif /* OPLUS_BUG_COMPATIBILITY */
 		if (kalRequestFirmware("wifi.cfg", pucConfigBuf,
 			   WLAN_CFG_FILE_BUF_SIZE, &u4ConfigReadLen,
 			   prAdapter->prGlueInfo->prDev) == 0) {
@@ -3689,8 +3730,8 @@ uint32_t wlanServiceInit(struct GLUE_INFO *prGlueInfo)
 			prServiceTest->test_winfo->chip_id);
 
 #if (CFG_MTK_ANDROID_EMI == 1)
-	prServiceTest->test_winfo->emi_phy_base = gConEmiPhyBase;
-	prServiceTest->test_winfo->emi_phy_size = gConEmiSize;
+	prServiceTest->test_winfo->emi_phy_base = gConEmiPhyBaseFinal;
+	prServiceTest->test_winfo->emi_phy_size = gConEmiSizeFinal;
 #else
 	DBGLOG(RFTEST, WARN, "Platform doesn't support EMI address\n");
 #endif
@@ -4405,7 +4446,21 @@ int32_t wlanOnWhenProbeSuccess(struct GLUE_INFO *prGlueInfo,
 	}
 #endif
 
+#if CFG_MODIFY_TX_POWER_BY_BAT_VOLT
+	if (wlan_bat_volt == 3550) {
+		kalEnableTxPwrBackoffByBattVolt(prAdapter, TRUE);
+		kalSetTxPwrBackoffByBattVolt(prAdapter, TRUE);
+		fgIsTxPowerDecreased = TRUE;
+	} else if (wlan_bat_volt == 3650) {
+		kalEnableTxPwrBackoffByBattVolt(prAdapter, TRUE);
+		kalSetTxPwrBackoffByBattVolt(prAdapter, FALSE);
+		fgIsTxPowerDecreased = FALSE;
+	}
+#endif
+
 	wlanOnP2pRegistration(prGlueInfo, prAdapter, gprWdev[0]);
+	if (prAdapter->u4HostStatusEmiOffset)
+		kalSetSuspendFlagToEMI(prAdapter, FALSE);
 	return 0;
 }
 
@@ -4837,6 +4892,14 @@ static int32_t wlanProbe(void *pvData, void *pvDriverData)
 		prAdapter = prGlueInfo->prAdapter;
 		prWifiVar = &prAdapter->rWifiVar;
 
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+		//@2019/12/3, move from end of wlanProbe to here:
+		//let prWifiVar->ucSta2gBandwidth in wlanInitFeatureOption can be controlled by smart feature option
+		//which means when feature off, driver STA BW cap will same with the original code
+		/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/26, add for smart band-width decision */
+		/* driver will call here every turn on WIFI */
+		smartBWGenericInit(prGlueInfo->prAdapter);
+#endif /* OPLUS_FEATURE_WIFI_SMART_BW */
 		wlanOnPreAdapterStart(prGlueInfo,
 			prAdapter,
 			&prRegInfo,
@@ -4966,8 +5029,18 @@ static int32_t wlanProbe(void *pvData, void *pvDriverData)
 			kalMetRemoveProcfs();
 		case PROC_INIT_FAIL:
 			wlanNetUnregister(prWdev);
+			/* Unregister notifier callback */
+			wlanUnregisterInetAddrNotifier();
 		case NET_REGISTER_FAIL:
 			set_bit(GLUE_FLAG_HALT_BIT, &prGlueInfo->ulFlag);
+#if CFG_SUPPORT_MULTITHREAD
+			wake_up_interruptible(&prGlueInfo->waitq_hif);
+			wait_for_completion_interruptible(
+				&prGlueInfo->rHifHaltComp);
+			wake_up_interruptible(&prGlueInfo->waitq_rx);
+			wait_for_completion_interruptible(
+				&prGlueInfo->rRxHaltComp);
+#endif
 			/* wake up main thread */
 			wake_up_interruptible(&prGlueInfo->waitq);
 			/* wait main thread stops */
@@ -5274,6 +5347,11 @@ static void wlanRemove(void)
 #if CFG_MTK_MCIF_WIFI_SUPPORT
 	mddpNotifyWifiOffEnd();
 #endif
+#ifdef OPLUS_FEATURE_WIFI_SMART_BW
+	/* Fenghua.Xu@PSW.TECH.WiFi.Connect.P00054039, 2019/10/26, add for smart band-width decision */
+	/* driver will call here every turn off WIFI */
+	smartBWGenericUnInit();
+#endif /* OPLUS_FEATURE_WIFI_SMART_BW */
 }				/* end of wlanRemove() */
 
 /*----------------------------------------------------------------------------*/
@@ -5307,7 +5385,14 @@ static int initWlan(void)
 	gConEmiPhyBase = (phys_addr_t)ptr;
 #endif
 
+	gConEmiPhyBaseFinal = gConEmiPhyBase;
+	gConEmiSizeFinal = gConEmiSize;
 
+#if (CFG_SUPPORT_CONNINFRA == 1)
+	conninfra_get_phy_addr(
+		(unsigned int *)&gConEmiPhyBaseFinal,
+		(unsigned int *)&gConEmiSizeFinal);
+#endif
 
 	DBGLOG(INIT, INFO, "initWlan\n");
 
@@ -5332,10 +5417,6 @@ static int initWlan(void)
 	kalInitIOBuffer(FALSE);
 #endif
 
-
-#if WLAN_INCLUDE_PROC
-	procInitFs();
-#endif
 #if WLAN_INCLUDE_SYS
 	sysInitFs();
 #endif
@@ -5360,7 +5441,7 @@ static int initWlan(void)
 			      wlanRemove) == WLAN_STATUS_SUCCESS) ? 0 : -EIO);
 #ifdef CONFIG_MTK_EMI
 	/* Set WIFI EMI protection to consys permitted on system boot up */
-	kalSetEmiMpuProtection(gConEmiPhyBase, true);
+	kalSetEmiMpuProtection(gConEmiPhyBaseFinal, true);
 #endif
 #if CFG_MTK_ANDROID_WMT && (CFG_SUPPORT_CONNINFRA == 0)
 	mtk_wcn_wmt_mpu_lock_release();
@@ -5370,12 +5451,20 @@ static int initWlan(void)
 		kalUninitIOBuffer();
 		return ret;
 	}
+
+#if WLAN_INCLUDE_PROC
+	procInitFs();
+#endif
 #if (CFG_CHIP_RESET_SUPPORT)
 	glResetInit(prGlueInfo);
 #endif
 	kalFbNotifierReg((struct GLUE_INFO *) wiphy_priv(
 				 wlanGetWiphy()));
 	wlanRegisterNetdevNotifier();
+
+#if CFG_MODIFY_TX_POWER_BY_BAT_VOLT
+	kalBatNotifierReg(prGlueInfo);
+#endif
 
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
 	wifi_fwlog_event_func_register(consys_log_event_notification);
@@ -5432,6 +5521,10 @@ static void exitWlan(void)
 	wlanUnregisterNetdevNotifier();
 
 	/* printk("remove %p\n", wlanRemove); */
+#if CFG_MODIFY_TX_POWER_BY_BAT_VOLT
+	kalBatNotifierUnReg();
+#endif
+
 #if CFG_CHIP_RESET_SUPPORT
 	glResetUninit();
 #endif
