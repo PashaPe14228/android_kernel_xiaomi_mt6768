@@ -350,6 +350,7 @@ extern asmlinkage void dump_stack(void) __cold;
 	dynamic_pr_info(KLOG_MODNAME fmt, ##__VA_ARGS__) \
 
 #else
+#ifndef CONFIG_BROKEN_PRINTK
 #define pr_emerg(fmt, ...) \
 			printk(KERN_EMERG pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_alert(fmt, ...) \
@@ -365,6 +366,16 @@ extern asmlinkage void dump_stack(void) __cold;
 			printk(KERN_NOTICE pr_fmt(fmt), ##__VA_ARGS__)
 #define pr_info(fmt, ...) \
 			printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__)
+#else
+static inline void pr_emerg(const char *fmt, ...) {}
+static inline void pr_alert(const char *fmt, ...) {}
+static inline void pr_crit(const char *fmt, ...) {}
+static inline void pr_err(const char *fmt, ...) {}
+static inline void pr_warning(const char *fmt, ...) {}
+static inline void pr_warn(const char *fmt, ...) {}
+static inline void pr_notice(const char *fmt, ...) {}
+static inline void pr_info(const char *fmt, ...) {}
+#endif
 #endif
 
 /*

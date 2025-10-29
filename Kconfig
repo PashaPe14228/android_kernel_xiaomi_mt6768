@@ -10,3 +10,13 @@ config SRCARCH
 	option env="SRCARCH"
 
 source "arch/$SRCARCH/Kconfig"
+
+config CASUAL_USER_BUILD
+	bool "Disables difficult things for those who do not need them"
+	default y
+	select BROKEN_PRINTK
+	help
+	  No help while you are using this config.
+
+config BROKEN_PRINTK
+	def_bool n
