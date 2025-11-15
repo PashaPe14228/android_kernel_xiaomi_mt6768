@@ -3029,12 +3029,6 @@ static int mtkfb_probe(struct platform_device *pdev)
 	"prim_panel_wakelock");*/
 	/* end modify for unlock speed */
 
-	if (!strcmp(mtkfb_find_lcm_driver(),
-		"nt35521_hd_dsi_vdo_truly_rt5081_drv")) {
-		register_ccci_sys_call_back(MD_SYS1,
-			MD_DISPLAY_DYNAMIC_MIPI, mipi_clk_change);
-	}
-
 #ifdef CONFIG_LM3697_SUPPORT
 	r = mtkfb_set_rgb_point_init();
 	if (r) {
@@ -3212,7 +3206,9 @@ int mtkfb_pm_suspend(struct device *device)
 	struct platform_device *pdev = to_platform_device(device);
 
 	if (pdev == NULL) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_db_print("pdev is NULL\n");
+#endif
 		return -1;
 	}
 
@@ -3226,7 +3222,9 @@ int mtkfb_pm_resume(struct device *device)
 	struct platform_device *pdev = to_platform_device(device);
 
 	if (pdev == NULL) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_db_print("pdev is NULL\n");
+#endif
 		return -1;
 	}
 

@@ -64,12 +64,17 @@ static int I2C_SET_FOR_BACKLIGHT  = 350;
 /****************************************************************************
  * DEBUG MACROS
  ***************************************************************************/
+#ifdef CONFIG_MTK_ENG_BUILD
 static int debug_enable_led = 1;
 #define LEDS_DRV_DEBUG(format, args...) do { \
 	if (debug_enable_led) {	\
 		pr_debug("[LED]"format, ##args);\
 	} \
 } while (0)
+#else
+static int debug_enable_led = 0;
+#define LEDS_DRV_DEBUG(format, args...) ((void)0)
+#endif
 
 /******************************************************************************
  * for DISP backlight High resolution
@@ -141,11 +146,11 @@ int setMaxbrightness(int max_level, int enable)
 
 		}
 	}
-	printk("[%s]:--lyd_thmal --------level = %d\n", __func__, max_level);
+	LEDS_DRV_DEBUG("[%s]:--lyd_thmal --------level = %d\n", __func__, max_level);
 #else
 	LEDS_DRV_DEBUG("%s go through AAL\n", __func__);
-	printk("[%s]: --lyd_thmal, set max_level = %d\n", __func__, max_level);
-	printk("[%s]: --lyd_thmal, set thermal_current_brightness  = %d\n", __func__, thermal_current_brightness);
+	LEDS_DRV_DEBUG("[%s]: --lyd_thmal, set max_level = %d\n", __func__, max_level);
+	LEDS_DRV_DEBUG("[%s]: --lyd_thmal, set thermal_current_brightness  = %d\n", __func__, thermal_current_brightness);
 	disp_bls_set_max_backlight(((((1 << LED_INTERNAL_LEVEL_BIT_CNT) -
 				      1) * max_level + 127) / 2047));
 	if (thermal_current_brightness >= max_level) {

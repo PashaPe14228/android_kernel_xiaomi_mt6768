@@ -194,10 +194,7 @@ static void push_table(void *cmdq, struct LCM_setting_table *table,
 		switch (cmd) {
 
 		case REGFLAG_DELAY:
-			if (table[i].count <= 10)
-				MDELAY(table[i].count);
-			else
-				MDELAY(table[i].count);
+			MDELAY(table[i].count);
 			break;
 
 		case REGFLAG_UDELAY:
@@ -276,8 +273,8 @@ static void lcm_get_params(struct LCM_PARAMS *params)
 	params->dsi.cont_clock = 1;
 #endif
 
-	params->dsi.esd_check_enable = 1;
-	params->dsi.customization_esd_check_enable = 1;
+	params->dsi.esd_check_enable = 0;
+	params->dsi.customization_esd_check_enable = 0;
 	params->dsi.lcm_esd_check_table[0].cmd = 0x0A;
 	params->dsi.lcm_esd_check_table[0].count = 1;
 	params->dsi.lcm_esd_check_table[0].para_list[0] = 0x9C;

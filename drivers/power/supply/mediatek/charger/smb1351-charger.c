@@ -431,7 +431,7 @@ enum usbsw_state {
 	USBSW_USB,
 };
 
-static const enum power_supply_type const smblib_apsd_results[] = {
+static enum power_supply_type const smblib_apsd_results[] = {
 	POWER_SUPPLY_TYPE_UNKNOWN,
 	POWER_SUPPLY_TYPE_USB,
 	POWER_SUPPLY_TYPE_USB_CDP,
@@ -1108,14 +1108,14 @@ retry_apsd:
 			chip->chg_type = STANDARD_CHARGER;
 			if (chip->bc12_en) {
 				pr_info("bc12 enabled, schedule hvdcp work.\n");
-				schedule_delayed_work(&chip->chg_hvdcp_det_work,
+				queue_delayed_work(system_power_efficient_wq, &chip->chg_hvdcp_det_work,
 							msecs_to_jiffies(HVDCP_NOTIFY_MS));
 			}
-			schedule_delayed_work(&chip->sw_rerun_aicl_work, msecs_to_jiffies(6000));
+			queue_delayed_work(system_power_efficient_wq, &chip->sw_rerun_aicl_work, msecs_to_jiffies(6000));
 			break;
 		case STATUS_PORT_SDP:
 			chip->chg_type = STANDARD_HOST;
-			schedule_delayed_work(&chip->float_chg_det_work, msecs_to_jiffies(SDP_NOTIFY_MS));
+			queue_delayed_work(system_power_efficient_wq, &chip->float_chg_det_work, msecs_to_jiffies(SDP_NOTIFY_MS));
 			break;
 		// case STATUS_PORT_OTHER:
 		// 	chip->chg_type = STANDARD_CHARGER;
@@ -1211,7 +1211,7 @@ static void smb1351_hvdcp_500_mode_check_work(struct work_struct *work)
 	u8 usb_mode;
 	int rc;
 	if (thermal_is_500 == true) {
-		schedule_delayed_work(&chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
+		queue_delayed_work(system_power_efficient_wq, &chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
 		return;
 	}
 	rc = smb1351_read_reg(chip, STATUS_0_REG, &usb_mode);
@@ -1233,7 +1233,7 @@ static void smb1351_hvdcp_500_mode_check_work(struct work_struct *work)
 	} else {
 		hvdcp_rerun_aicl_count = 0;
 	}
-	schedule_delayed_work(&chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
+	queue_delayed_work(system_power_efficient_wq, &chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
 }
 
 static void smb1351_sw_rerun_aicl_work(struct work_struct *work)
@@ -1260,7 +1260,7 @@ static void smb1351_sw_rerun_aicl_work(struct work_struct *work)
 		smb1351_rerun_aicl(chip);
 	}
 
-	schedule_delayed_work(&chip->sw_rerun_aicl_work, msecs_to_jiffies(120000));
+	queue_delayed_work(system_power_efficient_wq, &chip->sw_rerun_aicl_work, msecs_to_jiffies(120000));
 }
 
 static void smb1351_chg_hvdcp_det_work(struct work_struct *work)
@@ -1293,7 +1293,7 @@ static void smb1351_chg_hvdcp_det_work(struct work_struct *work)
 		hvdcp_det_status = 1;
 		chip->mt_chg->usb_desc.type = POWER_SUPPLY_TYPE_USB_HVDCP;
 		power_supply_changed(chip->usb_psy);
-		schedule_delayed_work(&chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
+		queue_delayed_work(system_power_efficient_wq, &chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
 	}
 	pr_err("QC charger detected. hvdcp= %x.\n",	hvdcp_status);
 	rc = smb1351_read_reg(chip, IRQ_H_REG, &hvdcp_result);
@@ -1309,12 +1309,12 @@ static void smb1351_chg_hvdcp_det_work(struct work_struct *work)
 		chip->mt_chg->usb_desc.type = POWER_SUPPLY_TYPE_USB_HVDCP_3;
 		power_supply_changed(chip->usb_psy);
 		smb1351_set_hvdcp_dpdm(chip->chg_dev);
-		schedule_delayed_work(&chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
+		queue_delayed_work(system_power_efficient_wq, &chip->hvdcp_500_mode_check_work, msecs_to_jiffies(5000));
 	}
 	pr_err("QC3 hvdcp_result = 0x%x det_count = %d.\n", hvdcp_result, hvdcp_det_count);
 	if (hvdcp_det_status == 0 && hvdcp_det_count < 3) {
 		hvdcp_det_count++;
-		schedule_delayed_work(&chip->chg_hvdcp_det_work,
+		queue_delayed_work(system_power_efficient_wq, &chip->chg_hvdcp_det_work,
 							msecs_to_jiffies(HVDCP_NOTIFY_MS));
 	}
 }
@@ -1495,7 +1495,7 @@ static int smb1351_set_suspend_to_iic(struct charger_device *chg_dev, bool suspe
 		if (rc)
 			pr_err("Couldn't set CMD_INPUT_LIMIT_REG rc=%d\n", rc);
 	}
-	pr_err("---set1 suspend en : %d\n", suspend);
+	pr_debug("---set1 suspend en : %d\n", suspend);
 	return 0;
 }
 
@@ -2115,7 +2115,9 @@ static int smb1351_is_charging_done(struct charger_device *chg_dev, bool *done)
 	struct smb1351_charger *chip = dev_get_drvdata(&chg_dev->dev);
 
 	*done = chip->batt_full;
+#ifdef CONFIG_MTK_ENG_BUILD
 	pr_err("charging is %s\n", chip->batt_full ? "done" : "not done");
+#endif
 	return 0;
 }
 
@@ -2259,8 +2261,9 @@ static int smb1351_get_usbchg_current(struct charger_device *chg_dev, u32 *uA)
 	struct smb1351_charger *chip = dev_get_drvdata(&chg_dev->dev);
 	u8 reg = 0;
 	int rc = 0, i = 0;
-
+#ifdef CONFIG_MTK_ENG_BUILD
 	pr_err("get usbchg current.\n");
+#endif
 
 	rc = smb1351_read_reg(chip, CHG_CURRENT_CTRL_REG, &reg);
 	if (rc) {
@@ -2277,11 +2280,13 @@ static int smb1351_set_usbchg_current(struct charger_device *chg_dev, u32 uA)
 {
 	struct smb1351_charger *chip = dev_get_drvdata(&chg_dev->dev);
 	int i, rc = 0;
-	static prev_current = -1;
+	static int prev_current = -1;
 	u8 reg = 0, mask = 0;
 	u32 current_ma = uA / 1000;
 
+#ifdef CONFIG_MTK_ENG_BUILD
 	pr_err("USB current_ma = %d\n", current_ma);
+#endif
 
 	if (chip->chg_autonomous_mode) {
 		pr_debug("Charger in autonomous mode\n");
@@ -2352,8 +2357,9 @@ static int smb1351_get_fastchg_current(struct charger_device *chg_dev, u32 *uA)
 	u8 reg, i;
 	int rc = 0;
 
+#ifdef CONFIG_MTK_ENG_BUILD
 	pr_err("get fastchg current\n");
-
+#endif
 	rc = smb1351_read_reg(chip, STATUS_3_REG, &reg);
 	if (rc < 0) {
 		pr_err("Couldn't read STATUS_3_REG rc=%d\n", rc);
@@ -2379,12 +2385,16 @@ static int smb1351_set_fastchg_current(struct charger_device *chg_dev, u32 uA)
 
 	chip->chg_current_set = uA / 1000;
 
+#ifdef CONFIG_MTK_ENG_BUILD
 	pr_err("fastchg current mA=%d \n", chip->chg_current_set);
+#endif
 
 	if ((chip->chg_current_set < SMB1351_CHG_PRE_MIN_MA) ||
 		(chip->chg_current_set > SMB1351_CHG_FAST_MAX_MA)) {
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("bad pre_fastchg current mA=%d asked to set\n",
 					chip->chg_current_set);
+#endif
 		return -EINVAL;
 	}
 
@@ -2452,18 +2462,20 @@ static int smb1351_set_fastchg_current(struct charger_device *chg_dev, u32 uA)
 	return rc;
 }
 
+#ifdef CONFIG_MTK_ENG_BUILD
 static int smb1351_get_min_ichg(struct charger_device *chg_dev, u32 *uA)
 {
 	*uA = pre_chg_current[2] * 1000;
 	pr_info("get min ichg: %d \n", *uA);
 	return 0;
 }
+#endif
 
 static int smb1351_plug_out(struct charger_device *chg_dev)
 {
 	struct smb1351_charger *chip = dev_get_drvdata(&chg_dev->dev);
 //	struct charger_manager *cm = chip->chg_consumer->cm;
-	int rc;
+//	int rc;
 	pr_err("%s \n", __func__);
 
 	chip->hvdcp_type = HVDCP_NULL;
@@ -2476,12 +2488,12 @@ static int smb1351_plug_out(struct charger_device *chg_dev)
 //	cm->wireless_status = WIRELESS_NULL;
 	chip->rerun_apsd_count = 0;
 //	_smb1351_enable_hvdcp_det(chip, true);
-	schedule_delayed_work(&chip->enable_hvdcp_work, msecs_to_jiffies(3000));
+	queue_delayed_work(system_power_efficient_wq, &chip->enable_hvdcp_work, msecs_to_jiffies(3000));
 	cancel_delayed_work_sync(&chip->hvdcp_500_mode_check_work);
 	/* Disable SW conn therm Regulation */
 //	rc = smblib_set_sw_conn_therm_regulation(chip, false);
-	if (rc < 0)
-		pr_err("Couldn't stop SW conn therm rc=%d\n", rc);
+//	if (rc < 0)
+//		pr_err("Couldn't stop SW conn therm rc=%d\n", rc);
 
 	return 0;
 }
@@ -2796,7 +2808,7 @@ static int smb1351_enable_chg_type_det(struct charger_device *chg_dev, bool en)
 		usb_det_flag = 0;
 		chip->hvdcp_dpdm_status = 0;
 		//_smb1351_enable_hvdcp_det(chip, true);
-		schedule_delayed_work(&chip->enable_hvdcp_work, msecs_to_jiffies(3000));
+		queue_delayed_work(system_power_efficient_wq, &chip->enable_hvdcp_work, msecs_to_jiffies(3000));
 		chip->mt_chg->usb_desc.type = smblib_apsd_results[chip->chg_type];
 		smb1351_psy_chg_type_changed(chip, true);
 		smb1351_set_usbsw_state(chip, USBSW_USB);
@@ -2867,7 +2879,7 @@ static int smb1351_enable_chg_type_det(struct charger_device *chg_dev, bool en)
 
 out:
 	mutex_unlock(&chip->chgdet_lock);
-	schedule_delayed_work(&chip->check_type_work, msecs_to_jiffies(5000));
+	queue_delayed_work(system_power_efficient_wq, &chip->check_type_work, msecs_to_jiffies(5000));
 	pr_info("%s: out.\n", __func__);
 	if (en)
 		dump_regs(chip);
@@ -2886,7 +2898,9 @@ static struct charger_ops smb1351_chg_ops = {
 	.set_input_current = smb1351_set_usbchg_current,
 	.get_charging_current = smb1351_get_fastchg_current,
 	.set_charging_current = smb1351_set_fastchg_current,
+#ifdef CONFIG_MTK_ENG_BUILD
 	.get_min_charging_current = smb1351_get_min_ichg,
+#endif
 	.set_constant_voltage = smb1351_set_float_voltage,
 	.set_suspend = smb1351_set_suspend_to_iic,
 	.enable_chg_type_det = smb1351_enable_chg_type_det,
@@ -3073,7 +3087,7 @@ static void smb1351_delay_init_work(struct work_struct *work)
 #endif
 	return;
 retry:
-	schedule_delayed_work(&chip->delay_init_work,
+	queue_delayed_work(system_power_efficient_wq, &chip->delay_init_work,
 			msecs_to_jiffies(100));
 }
 
@@ -3146,7 +3160,7 @@ static int smb1351_charger_probe(struct i2c_client *client,
 		}
 	}
 
-	schedule_delayed_work(&chip->delay_init_work,
+	queue_delayed_work(system_power_efficient_wq, &chip->delay_init_work,
 			msecs_to_jiffies(100));
 	return 0;
 }

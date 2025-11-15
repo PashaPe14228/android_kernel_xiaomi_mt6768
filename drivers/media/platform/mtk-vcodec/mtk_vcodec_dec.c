@@ -175,8 +175,7 @@ static struct vb2_buffer *get_display_buffer(struct mtk_vcodec_ctx *ctx,
 			dstbuf->vb.vb2_buf.timestamp == ctx->input_max_ts)
 			dstbuf->vb.flags |= V4L2_BUF_FLAG_LAST;
 
-		if (ctx->input_driven)
-			dstbuf->vb.vb2_buf.timestamp =
+		dstbuf->vb.vb2_buf.timestamp =
 				disp_frame_buffer->timestamp;
 
 		mtk_v4l2_debug(2,
@@ -525,6 +524,8 @@ int mtk_vdec_put_fb(struct mtk_vcodec_ctx *ctx, int type)
 				struct mtk_video_dec_buf, vb);
 
 			dst_buf_info->used = false;
+			dst_buf_info->vb.vb2_buf.timestamp = 0;
+			memset(&dst_buf_info->vb.timecode, 0, sizeof(struct v4l2_timecode));
 			dst_vb2_v4l2->flags |= V4L2_BUF_FLAG_LAST;
 			pfb = &dst_buf_info->frame_buffer;
 			for (i = 0; i < pfb->num_planes; i++)
@@ -709,6 +710,9 @@ static void mtk_vdec_worker(struct work_struct *work)
 	if ((src_chg & VDEC_CROP_CHANGED) &&
 		(!ctx->input_driven) && dst_buf_info != NULL)
 		dst_buf_info->flags |= CROP_CHANGED;
+
+	if (src_chg & VDEC_OUTPUT_NOT_GENERATED)
+		src_vb2_v4l2->flags |= V4L2_BUF_FLAG_OUTPUT_NOT_GENERATED;
 
 	if (!ctx->input_driven) {
 		mtk_vdec_put_fb(ctx, -1);
@@ -909,9 +913,10 @@ void mtk_vdec_unlock(struct mtk_vcodec_ctx *ctx, u32 hw_id)
 	mtk_v4l2_debug(4, "ctx %p [%d] hw_id %d sem_cnt %d",
 		ctx, ctx->id, hw_id, ctx->dev->dec_sem[hw_id].count);
 
-	if (hw_id < MTK_VDEC_HW_NUM)
+	if (hw_id < MTK_VDEC_HW_NUM) {
+		ctx->hw_locked[hw_id] = 0;
 		up(&ctx->dev->dec_sem[hw_id]);
-	ctx->hw_locked[hw_id] = 0;
+	}
 }
 
 int mtk_vdec_lock(struct mtk_vcodec_ctx *ctx, u32 hw_id)
@@ -989,17 +994,16 @@ void mtk_vcodec_dec_release(struct mtk_vcodec_ctx *ctx)
 	int i = 0;
 
 	vdec_if_deinit(ctx);
-	if (ctx->user_lock_hw)
-		for (i = 0; i < MTK_VDEC_HW_NUM; i++) {
-			/* user killed when holding lock */
-			if (ctx->hw_locked[i] == 1)
-				vdec_decode_unprepare(ctx, i);
-			/* user killed when waiting lock, do not unlock*/
-			if (ctx->hw_locked[i] == -1) {
-				mtk_vcodec_dec_clock_off(&ctx->dev->pm, i);
-				mtk_vdec_pmqos_end_frame(ctx, i);
-			}
+	for (i = 0; i < MTK_VDEC_HW_NUM; i++) {
+		/* user killed when holding lock */
+		if (ctx->hw_locked[i] == 1)
+			vdec_decode_unprepare(ctx, i);
+		/* user killed when waiting lock, do not unlock*/
+		if (ctx->hw_locked[i] == -1) {
+			mtk_vdec_pmqos_end_frame(ctx, i);
+			mtk_vcodec_dec_clock_off(&ctx->dev->pm, i);
 		}
+	}
 }
 
 void mtk_vcodec_dec_set_default_params(struct mtk_vcodec_ctx *ctx)
@@ -2208,6 +2212,9 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 		buf = container_of(vb2_v4l2, struct mtk_video_dec_buf, vb);
 		last_frame_type = buf->lastframe;
 
+		if (need_seq_header)
+			vb2_v4l2->flags |= V4L2_BUF_FLAG_OUTPUT_NOT_GENERATED;
+
 		src_buf = v4l2_m2m_src_buf_remove(ctx->m2m_ctx);
 		if (!src_buf) {
 			mtk_v4l2_err("[%d]Error!!src_buf is NULL!");
@@ -2225,6 +2232,7 @@ static void vb2ops_vdec_buf_queue(struct vb2_buffer *vb)
 		 * bitdepth, level, we need to stop to play it
 		 */
 		if (need_seq_header) {
+			vb2_v4l2->flags |= V4L2_BUF_FLAG_OUTPUT_NOT_GENERATED;
 			mtk_v4l2_debug(3, "[%d]Error!! Need seq header!",
 						 ctx->id);
 			mtk_vdec_queue_noseqheader_event(ctx);
@@ -2454,6 +2462,7 @@ static void vb2ops_vdec_stop_streaming(struct vb2_queue *q)
 	mtk_v4l2_debug(4, "[%d] (%d) state=(%x) ctx->decoded_frame_cnt=%d",
 		ctx->id, q->type, ctx->state, ctx->decoded_frame_cnt);
 
+	ctx->dec_flush_buf->lastframe = NON_EOS;
 	if (q->type == V4L2_BUF_TYPE_VIDEO_OUTPUT_MPLANE) {
 		if (ctx->state >= MTK_STATE_HEADER)
 			mtk_vdec_flush_decoder(ctx);

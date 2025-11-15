@@ -80,7 +80,7 @@ static struct proc_dir_entry *mtkfb_procfs;
 static struct proc_dir_entry *disp_lowpower_proc;
 #endif
 
-unsigned int g_mobilelog = 1;
+unsigned int g_mobilelog = 0;
 int bypass_blank;
 int lcm_mode_status;
 int layer_layout_allow_non_continuous;
@@ -221,64 +221,11 @@ err_out:
 int disp_layer_info_statistic(struct disp_ddp_path_config *last_config,
 	struct disp_frame_cfg_t *cfg)
 {
-	unsigned int i, phy_num = 0, ext_num = 0;
-	int phy_num_with_arm_ext;
-
-	if (!READ_ONCE(layer_statistic_enable))
-		return 0;
-
-	layer_stat.total_frame_cnt++;
-
-	for (i = 0; i < cfg->input_layer_num; i++) {
-		if (!cfg->input_cfg[i].layer_enable)
-			continue;
-		if (cfg->input_cfg[i].ext_sel_layer != -1)
-			ext_num++;
-		else
-			phy_num++;
-	}
-	layer_stat.cnt_by_layers[phy_num + ext_num]++;
-	layer_stat.cnt_by_layers_with_ext[phy_num]++;
-
-	phy_num_with_arm_ext = calc_layer_num_with_arm_ext(cfg);
-	if (phy_num_with_arm_ext > 0) {
-		phy_num_with_arm_ext =
-			min(phy_num_with_arm_ext, STATISTIC_MAX_LAYERS);
-		layer_stat.cnt_by_layers_with_arm_ext[phy_num_with_arm_ext]++;
-	}
-
-	if (!(layer_stat.total_frame_cnt % 100)) {
-		char str[200];
-		int offset = 0;
-
-		offset += snprintf(str + offset, sizeof(str) - offset,
-			"total:%ld.layers:", layer_stat.total_frame_cnt);
-		for (i = 1; i <= 12; i++)
-			offset += snprintf(str + offset, sizeof(str) - offset,
-				"%ld,", layer_stat.cnt_by_layers[i]);
-		DISPMSG("layer_cnt %s\n", str);
-
-		offset = 0;
-		offset += snprintf(str + offset,
-			sizeof(str) - offset, ".ext:");
-		for (i = 1; i <= 6 ; i++)
-			offset += snprintf(str + offset, sizeof(str) - offset,
-				"%ld,", layer_stat.cnt_by_layers_with_ext[i]);
-
-		offset += snprintf(str + offset,
-			sizeof(str) - offset, ".arm_ext:");
-		for (i = 1; i <= 6 ; i++)
-			offset += snprintf(str + offset, sizeof(str) - offset,
-			"%ld,", layer_stat.cnt_by_layers_with_arm_ext[i]);
-		DISPMSG("layer_cnt %s\n", str);
-	}
-
 	return 0;
 }
 
 void disp_layer_info_statistic_reset(void)
 {
-	memset(&layer_stat, 0, sizeof(layer_stat));
 }
 
 /*********************** basic test ****************************/
@@ -626,32 +573,6 @@ static int __maybe_unused compare_dsi_checksum(unsigned long unused)
 
 static int __maybe_unused check_dsi_checksum(void)
 {
-	struct cmdqRecStruct *handle;
-	int ret;
-
-	if (!cksum_golden)
-		return 0;
-
-	ret = cmdqRecCreate(CMDQ_SCENARIO_PRIMARY_DISP, &handle);
-	if (ret) {
-		DISPWARN("Fail to create cmdq handle\n");
-		return -1;
-	}
-	if (!cksum_slot) {
-		ret = cmdqBackupAllocateSlot(&cksum_slot, 1);
-		if (ret) {
-			DISPWARN("Fail to alloc cmd slot\n");
-			cmdqRecDestroy(handle);
-			return -1;
-		}
-	}
-
-	cmdqRecReset(handle);
-	_cmdq_insert_wait_frame_done_token_mira(handle);
-	cmdqRecBackupRegisterToSlot(handle, cksum_slot, 0,
-		disp_addr_convert(DISPSYS_DSI0_BASE + 0x144));
-	cmdqRecFlushAsyncCallback(handle, compare_dsi_checksum, 0);
-	cmdqRecDestroy(handle);
 	return 0;
 }
 
@@ -1293,7 +1214,7 @@ static void process_dbg_opt(const char *opt)
 			DDPMSG("dump_layer En %d\n", gCaptureWdmaLayerEnable);
 		}
 	} else if (strncmp(opt, "dump_rdma_layer:", 16) == 0) {
-#if defined(CONFIG_MTK_ENG_BUILD) || !defined(CONFIG_MTK_GMO_RAM_OPTIMIZE)
+#if defined(CONFIG_MTK_ENG_BUILD)
 		if (strncmp(opt + 16, "on", 2) == 0) {
 			ret = sscanf(opt, "dump_rdma_layer:on,%d,%d\n",
 				     &gCapturePriLayerDownX,

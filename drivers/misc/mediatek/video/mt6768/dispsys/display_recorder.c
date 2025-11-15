@@ -69,7 +69,7 @@ unsigned int gCapturePriLayerDownX = 20;
 unsigned int gCapturePriLayerDownY = 20;
 unsigned int gCapturePriLayerNum = 4;
 
-#if defined(CONFIG_MTK_ENG_BUILD) || !defined(CONFIG_MTK_GMO_RAM_OPTIMIZE)
+#if defined(CONFIG_MTK_ENG_BUILD)
 static DEFINE_SPINLOCK(gdprec_logger_spinlock);
 
 static struct reg_base_map reg_map[] = {
@@ -1124,7 +1124,7 @@ void dprec_logger_dump_reset(void)
 		sizeof(dprec_string_buffer_analysize));
 }
 
-char *dprec_logger_get_dump_addr()
+char *dprec_logger_get_dump_addr(void)
 {
 	return dprec_string_buffer_analysize;
 }
@@ -1559,7 +1559,8 @@ void dprec_logger_dump_reset(void)
 {
 }
 
-char *dprec_logger_get_dump_addr()
+
+char *dprec_logger_get_dump_addr(void)
 {
 	return NULL;
 }

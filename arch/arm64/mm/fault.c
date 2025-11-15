@@ -301,7 +301,7 @@ static void __do_kernel_fault(unsigned long addr, unsigned int esr,
 	show_pte(addr);
 	die("Oops", regs, esr);
 	bust_spinlocks(0);
-	do_exit(SIGKILL);
+	make_task_dead(SIGKILL);
 }
 
 /*
@@ -550,7 +550,9 @@ done:
 		 * userspace (which will retry the fault, or kill us if we got
 		 * oom-killed).
 		 */
+#if !defined(CONFIG_DISABLE_OOM_KILLER)
 		pagefault_out_of_memory();
+#endif
 		return 0;
 	}
 

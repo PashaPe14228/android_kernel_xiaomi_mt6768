@@ -34,6 +34,9 @@
 * 1.Included header files
 *****************************************************************************/
 #include "focaltech_core.h"
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+#include <linux/input/tp_common.h>
+#endif
 
 /******************************************************************************
 * Private constant and macro definitions using #define
@@ -104,6 +107,33 @@ static struct fts_gesture_st fts_gesture_data;
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+static ssize_t double_tap_show(struct kobject *kobj,
+                               struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", fts_gesture_flag);
+}
+
+static ssize_t double_tap_store(struct kobject *kobj,
+                                struct kobj_attribute *attr, const char *buf,
+                                size_t count)
+{
+	int rc, val;
+
+	rc = kstrtoint(buf, 10, &val);
+	if (rc)
+	return -EINVAL;
+
+	fts_gesture_flag = !!val;
+	return count;
+}
+
+static struct tp_common_ops double_tap_ops = {
+	.show = double_tap_show,
+	.store = double_tap_store,
+};
+#endif
+
 static ssize_t fts_gesture_show(
     struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -373,10 +403,11 @@ int fts_gesture_suspend(struct fts_ts_data *ts_data)
 		break;
 	}
 
-    if (i >= 5)
-	FTS_ERROR("make IC enter into gesture(suspend) fail,state:%x", state);
-    else
-	FTS_INFO("Enter into gesture(suspend) successfully");
+    if (i >= 5) {
+		FTS_ERROR("make IC enter into gesture(suspend) fail,state:%x", state);
+	} else {
+		FTS_INFO("Enter into gesture(suspend) successfully");
+	}
 
     FTS_FUNC_EXIT();
     return 0;
@@ -400,10 +431,11 @@ int fts_gesture_resume(struct fts_ts_data *ts_data)
 		break;
 	}
 
-    if (i >= 5)
-	FTS_ERROR("make IC exit gesture(resume) fail,state:%x", state);
-    else
-	FTS_INFO("resume from gesture successfully");
+    if (i >= 5) {
+		FTS_ERROR("make IC exit gesture(resume) fail,state:%x", state);
+	} else {
+		FTS_INFO("resume from gesture successfully");
+	}
 
 	FTS_FUNC_EXIT();
     return 0;
@@ -431,6 +463,9 @@ int fts_gesture_switch(struct input_dev *dev, unsigned int type, unsigned int co
 int fts_gesture_init(struct fts_ts_data *ts_data)
 {
 	struct input_dev *input_dev = ts_data->input_dev;
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+	int ret;
+#endif
 
 	FTS_FUNC_ENTER();
 	input_set_capability(input_dev, EV_KEY, KEY_POWER);
@@ -469,6 +504,14 @@ int fts_gesture_init(struct fts_ts_data *ts_data)
 	input_dev->event = fts_gesture_switch;
 
 	fts_create_gesture_sysfs(ts_data->dev);
+
+#ifdef CONFIG_TOUCHSCREEN_COMMON
+	ret = tp_common_set_double_tap_ops(&double_tap_ops);
+	if (ret < 0) {
+		FTS_ERROR("%s: Failed to create double_tap node err=%d\n",
+		          __func__, ret);
+	}
+#endif
 
 	memset(&fts_gesture_data, 0, sizeof(struct fts_gesture_st));
 	ts_data->gesture_mode = DISABLE;

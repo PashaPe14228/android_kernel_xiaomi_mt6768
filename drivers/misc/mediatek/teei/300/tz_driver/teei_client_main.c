@@ -65,7 +65,7 @@
 #include <irq_register.h>
 #include <../teei_fp/fp_func.h>
 
-#if (CONFIG_MICROTRUST_TZ_DRIVER_MTK_BOOTPROF && CONFIG_MTPROF)
+#if defined(CONFIG_MICROTRUST_TZ_DRIVER_MTK_BOOTPROF) && defined(CONFIG_MTPROF)
 
 #if KERNEL_VERSION(4, 19, 0) <= LINUX_VERSION_CODE
 #define TEEI_BOOT_FOOTPRINT(str) bootprof_log_boot(str)
@@ -1143,6 +1143,7 @@ static int teei_client_init(void)
 
 	wake_up_process(teei_bdrv_task);
 
+#ifdef CONFIG_MICROTRUST_TZ_LOG
 	init_tlog_comp_fn();
 
 	/* create the teei log thread */
@@ -1155,6 +1156,7 @@ static int teei_client_init(void)
 	}
 
 	wake_up_process(teei_log_task);
+#endif
 
 	IMSG_DEBUG("create the sub_thread successfully!\n");
 

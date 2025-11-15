@@ -137,7 +137,7 @@
  * show debug log info
  * enable it for debug, disable it for release
  */
-#define FTS_DEBUG_EN                            1
+#define FTS_DEBUG_EN                            0
 
 /*
  * Linux MultiTouch Protocol
@@ -149,7 +149,7 @@
  * Report Pressure in multitouch
  * 1:enable(default),0:disable
 */
-#define FTS_REPORT_PRESSURE_EN                  1
+#define FTS_REPORT_PRESSURE_EN                  0
 
 /*
  * Gesture function enable
@@ -161,13 +161,13 @@
  * ESD check & protection
  * default: disable
  */
-#define FTS_ESDCHECK_EN                         1
+#define FTS_ESDCHECK_EN                         0
 
 /*
  * Production test enable
  * 1: enable, 0:disable(default)
  */
-#define FTS_TEST_EN                             1
+#define FTS_TEST_EN                             0
 
 /*
  * Proximity sensor
@@ -200,8 +200,8 @@
  */
 #define FTS_GET_MODULE_NUM                      0
 
-#define	FTS_TP_SELFTEST	1
-#define	FTS_PALM_EN	1
+#define	FTS_TP_SELFTEST	0
+#define	FTS_PALM_EN	0
 /*
  * module_id: mean vendor_id generally, also maybe gpio or lcm_id...
  * If means vendor_id, the FTS_MODULE_ID = PANEL_ID << 8 + VENDOR_ID

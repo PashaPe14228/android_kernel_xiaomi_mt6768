@@ -50,7 +50,6 @@ struct pm_qos_request vdec_qos_req_bw;
 void mtk_dec_init_ctx_pm(struct mtk_vcodec_ctx *ctx)
 {
 	ctx->input_driven = 0;
-	ctx->user_lock_hw = 1;
 }
 
 int mtk_vcodec_init_dec_pm(struct mtk_vcodec_dev *mtkdev)
@@ -227,7 +226,7 @@ void mtk_vdec_dvfs_end(struct mtk_vcodec_ctx *ctx)
 	/* vdec dvfs */
 	mutex_lock(&ctx->dev->dec_dvfs_mutex);
 	vdec_cur_job = vdec_jobs;
-	if (vdec_cur_job->handle == &ctx->id) {
+	if (vdec_cur_job != 0 && vdec_cur_job->handle == &ctx->id) {
 		vdec_cur_job->end = get_time_us();
 		update_hist(vdec_cur_job, &vdec_hists, 0);
 		vdec_jobs = vdec_jobs->next;

@@ -127,14 +127,13 @@ inline int get_mapped_fd(struct dma_buf *dmabuf)
 	}
 
 	target_fd = __alloc_fd(f, 0, rlim_cur, O_CLOEXEC);
-
-	get_file(dmabuf->file);
-
 	if (target_fd < 0) {
 		put_files_struct(f);
 		vcu_put_file_lock();
 		return -EMFILE;
 	}
+
+	get_file(dmabuf->file);
 
 	__fd_install(f, target_fd, dmabuf->file);
 
@@ -230,6 +229,12 @@ int vcu_dec_ipi_handler(void *data, unsigned int len, void *priv)
 	vcu = (struct vdec_vcu_inst *)(unsigned long)msg->ap_inst_addr;
 	if ((vcu != priv) && msg->msg_id < VCU_IPIMSG_DEC_WAITISR) {
 		pr_info("%s, vcu:%p != priv:%p\n", __func__, vcu, priv);
+		return 1;
+	}
+
+	if (vcu->daemon_pid != current->tgid) {
+		//pr_info("%s, vcu->daemon_pid:%d != current %d\n",
+		//	__func__, vcu->daemon_pid, current->tgid);
 		return 1;
 	}
 

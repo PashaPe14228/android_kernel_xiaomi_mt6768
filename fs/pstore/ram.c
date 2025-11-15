@@ -618,6 +618,7 @@ static int ramoops_init_przs(const char *name,
 	}
 
 	zone_sz = mem_sz / *cnt;
+	zone_sz = ALIGN_DOWN(zone_sz, 2);
 	if (!zone_sz) {
 		dev_err(dev, "%s zone size == 0\n", name);
 		goto fail;
@@ -766,15 +767,6 @@ static int ramoops_probe(struct platform_device *pdev)
 	phys_addr_t paddr;
 	int err = -EINVAL;
 
-	if (dev_of_node(dev) && !pdata) {
-		pdata = &pdata_local;
-		memset(pdata, 0, sizeof(*pdata));
-
-		err = ramoops_parse_dt(pdev, pdata);
-		if (err < 0)
-			goto fail_out;
-	}
-
 	/*
 	 * Only a single ramoops area allowed at a time, so fail extra
 	 * probes.
@@ -784,9 +776,19 @@ static int ramoops_probe(struct platform_device *pdev)
 		goto fail_out;
 	}
 
+	if (dev_of_node(dev) && !pdata) {
+		pdata = &pdata_local;
+		memset(pdata, 0, sizeof(*pdata));
+
+		err = ramoops_parse_dt(pdev, pdata);
+		if (err < 0)
+			goto fail_out;
+	}
+
 	/* Make sure we didn't get bogus platform data pointer. */
 	if (!pdata) {
 		pr_err("NULL platform data\n");
+		err = -EINVAL;
 		goto fail_out;
 	}
 
@@ -794,6 +796,7 @@ static int ramoops_probe(struct platform_device *pdev)
 			!pdata->ftrace_size && !pdata->pmsg_size)) {
 		pr_err("The memory size and the record/console size must be "
 			"non-zero\n");
+		err = -EINVAL;
 		goto fail_out;
 	}
 

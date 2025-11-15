@@ -261,36 +261,14 @@ struct display_primary_path_context *_get_context(void)
 
 void _primary_path_lock(const char *caller)
 {
-	dprec_logger_start(DPREC_LOGGER_PRIMARY_MUTEX, 0, 0);
 	disp_sw_mutex_lock(&(pgc->lock));
-	mutex_time_start = sched_clock();
 	pgc->mutex_locker = (char *)caller;
 }
 
 void _primary_path_unlock(const char *caller)
 {
 	pgc->mutex_locker = NULL;
-
-	mutex_time_end = sched_clock();
-	mutex_time_period = mutex_time_end - mutex_time_start;
-	if (mutex_time_period > 300000000) {
-		DISPCHECK("mutex_release_timeout1 <%lld ns>\n",
-			mutex_time_period);
-		dump_stack();
-	}
-
 	disp_sw_mutex_unlock(&(pgc->lock));
-
-	mutex_time_end1 = sched_clock();
-	mutex_time_period1 = mutex_time_end1 - mutex_time_start;
-	if ((mutex_time_period < 300000000 && mutex_time_period1 > 300000000) ||
-	   (mutex_time_period < 300000000 && mutex_time_period1 < 0)) {
-		DISPCHECK("mutex_release_timeout2 <%lld ns>,<%lld ns>\n",
-			mutex_time_period1, mutex_time_period);
-		dump_stack();
-	}
-
-	dprec_logger_done(DPREC_LOGGER_PRIMARY_MUTEX, 0, 0);
 }
 
 static const char *session_mode_spy(unsigned int mode)
@@ -1558,9 +1536,12 @@ static void _cmdq_build_trigger_loop(void)
 		ret = cmdqRecSetEventToken(pgc->cmdq_handle_trigger,
 			CMDQ_SYNC_TOKEN_CABC_EOF);
 		/* RUN forever!!!! */
-		if (ret < 0)
+		if (ret < 0) {
+#ifdef CONFIG_MTK_AEE_AED
 			disp_aee_db_print("cmdq build trigger fail, ret=%d\n",
 				ret);
+#endif
+		}
 	}
 
 	/* dump trigger loop instructions to check
@@ -2709,8 +2690,10 @@ static int _convert_disp_input_to_ovl(struct OVL_CONFIG_STRUCT *dst,
 	unsigned int Bpp = 0;
 
 	if (!src || !dst) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("%s src(0x%p) or dst(0x%p) is null\n",
 			__func__, src, dst);
+#endif
 		return -1;
 	}
 
@@ -3164,8 +3147,11 @@ static void DC_config_nightlight(struct cmdqRecStruct *cmdq_handle)
 			break;
 		}
 	}
-	if (all_zero)
+	if (all_zero) {
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("Night light backup param is zero matrix\n");
+#endif
+	}
 	else
 		disp_ccorr_set_color_matrix(cmdq_handle, ccorr_matrix, mode);
 }
@@ -3307,37 +3293,6 @@ static int _ovl_fence_release_callback(unsigned long userdata)
 			dvfs_last_ovl_req);
 #endif
 	_primary_path_unlock(__func__);
-
-	/* check last ovl status: should be idle when config */
-	if (primary_display_is_video_mode() &&
-		!primary_display_is_decouple_mode()) {
-		unsigned int status;
-
-		cmdqBackupReadSlot(pgc->ovl_status_info, 0, &status);
-#ifdef DEBUG_OVL_CONFIG_TIME
-		unsigned int time_event = 0;
-		unsigned int time_event1 = 0;
-		unsigned int time_event2 = 0;
-
-		cmdqBackupReadSlot(pgc->ovl_config_time, 0, &time_event);
-		cmdqBackupReadSlot(pgc->ovl_config_time, 1, &time_event1);
-		cmdqBackupReadSlot(pgc->ovl_config_time, 2, &time_event2);
-		DISPMSG(
-			"ovl config time_event %d time_event1 %d time_event2 %d time1_diff  %d  time2_diff %d\n",
-			time_event, time_event1, time_event2,
-			time_event1 - time_event, time_event2 - time_event1);
-#endif
-		if (status & 0x1) {
-			/* ovl is not idle !! */
-			DISPERR("disp ovl status error!! stat=0x%x\n",
-			status);
-			/* disp_aee_print("ovl_stat 0x%x\n", status); */
-			mmprofile_log_ex(ddp_mmp_get_events()->primary_error,
-					 MMPROFILE_FLAG_PULSE, status, 0);
-			primary_display_diagnose();
-			ret = -1;
-		}
-	}
 
 	for (i = 0; i < PRIMARY_SESSION_INPUT_LAYER_COUNT; i++) {
 		int fence_idx = 0;
@@ -6867,8 +6822,11 @@ static int primary_frame_cfg_input(struct disp_frame_cfg_t *cfg)
 				break;
 			}
 		}
-		if (all_zero)
+		if (all_zero) {
+#ifdef CONFIG_MTK_AEE_AED
 			disp_aee_print("HWC set zero matrix\n");
+#endif
+		}
 		else if (!primary_display_is_decouple_mode()) {
 			disp_ccorr_set_color_matrix(cmdq_handle,
 				m_ccorr_config.color_matrix,
@@ -9594,7 +9552,9 @@ static int primary_display_enter_self_refresh(void)
 
 	if (primary_display_is_mirror_mode()) {
 		/* we only accept non-mirror mode */
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("enter self-refresh mode fail\n");
+#endif
 		goto out;
 	}
 
@@ -9622,7 +9582,9 @@ static int primary_display_exit_self_refresh(void)
 
 	if (primary_display_is_mirror_mode()) {
 		/* we only accept non-mirror mode */
+#ifdef CONFIG_MTK_AEE_AED
 		disp_aee_print("enter self-refresh mode fail\n");
+#endif
 		goto out;
 	}
 

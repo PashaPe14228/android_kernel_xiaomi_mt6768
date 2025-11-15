@@ -420,7 +420,9 @@ static int bms_get_property(struct power_supply *psy,
 		val->intval = gm.battery_id;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("mtk_qmax_agin:%d qmax:%d\n", mtk_qmax_aging, qmax);
+#endif
 		if (mtk_qmax_aging < 50200)
 			qmax = mtk_qmax_aging * 100;
 		val->intval = qmax;
@@ -492,7 +494,9 @@ void otg_thermal_limit(void)
 		return;
 	}
 	if (!primary_charger) {
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("primary_charger is NULL\n");
+#endif
 		primary_charger = get_charger_by_name("primary_chg");
 	}
 
@@ -565,7 +569,9 @@ static int battery_get_property(struct power_supply *psy,
 		val->intval = battery_get_bat_avg_current() * 100;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("mtk_qmax_agin:%d qmax:%d\n", mtk_qmax_aging, qmax);
+#endif
 		if (mtk_qmax_aging < 50200)
 			qmax = mtk_qmax_aging * 100;
 		val->intval = qmax;
@@ -736,7 +742,9 @@ void battery_update(struct battery_data *bat_data)
 	bool chg_done = false;
 
 	if (!primary_charger) {
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("primary_charger is NULL\n");
+#endif
 		primary_charger = get_charger_by_name("primary_chg");
 	}
 	charger_dev_is_charging_done(primary_charger, &chg_done);
@@ -747,9 +755,9 @@ void battery_update(struct battery_data *bat_data)
 	battery_update_psd(&battery_main);
 	if (bat_data->BAT_CAPACITY == 100 && upmu_get_rgs_chrdet() != 0 && bat_data->BAT_STATUS != POWER_SUPPLY_STATUS_DISCHARGING && chg_done && bat_data->BAT_batt_temp < 45) {
 		bat_data->BAT_STATUS = POWER_SUPPLY_STATUS_FULL;
-	bm_err("battery_update set FULL! ui:%d chr:%d %d done:%d\n", bat_data->BAT_CAPACITY, upmu_get_rgs_chrdet(), bat_data->BAT_STATUS, chg_done);
+	bm_debug("battery_update set FULL! ui:%d chr:%d %d done:%d\n", bat_data->BAT_CAPACITY, upmu_get_rgs_chrdet(), bat_data->BAT_STATUS, chg_done);
 	}
-	bm_err("battery_update status: ui:%d chr:%d status%d done:%d temp:%d\n", bat_data->BAT_CAPACITY, upmu_get_rgs_chrdet(), bat_data->BAT_STATUS, chg_done, bat_data->BAT_batt_temp);
+	bm_debug("battery_update status: ui:%d chr:%d status%d done:%d temp:%d\n", bat_data->BAT_CAPACITY, upmu_get_rgs_chrdet(), bat_data->BAT_STATUS, chg_done, bat_data->BAT_batt_temp);
 
 #if defined(CONFIG_MTK_DISABLE_GAUGE)
 	return;
@@ -3489,8 +3497,8 @@ static ssize_t store_FG_daemon_log_level(
 				val
 			);
 
-			gm.d_log_level = val;
-			gm.log_level = val;
+			gm.d_log_level = 0;
+			gm.log_level = 0;
 		}
 		if (val >= 7)
 			gauge_coulomb_set_log_level(3);
@@ -4210,14 +4218,18 @@ static void otg_boost_limit_work(struct work_struct *work)
 		fgcurrent = 0 - fgcurrent;
 
 	current_now = fgcurrent * 100;
+#ifdef CONFIG_MTK_ENG_BUILD
 	pr_err("dhx--state:%d--current now = %d\n", b_ischarging, current_now);
+#endif
 	if (!primary_charger) {
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("primary_charger is NULL\n");
+#endif
 		primary_charger = get_charger_by_name("primary_chg");
 	}
 	if (otg_limit == 1) {
 		pr_err("phone is to high skip batterty otg boost check\n");
-		schedule_delayed_work(&otg_boost_current_work, msecs_to_jiffies(10000));
+		queue_delayed_work(system_power_efficient_wq, &otg_boost_current_work, msecs_to_jiffies(10000));
 		return;
 	}
 
@@ -4237,13 +4249,17 @@ static void otg_boost_limit_work(struct work_struct *work)
 	if (count_low >= 6)	{
 		charger_dev_set_otg_current(primary_charger, 1800000);
 		otg_ibat_limit = 0;
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("dhx---set otg current 1.8A\n");
+#endif
 	} else if (count_high == 6)	{
 		charger_dev_set_otg_current(primary_charger, 1000000);
 		otg_ibat_limit = 1;
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("dhx---set otg current 1A\n");
+#endif
 	}
-	schedule_delayed_work(&otg_boost_current_work, msecs_to_jiffies(10000));
+	queue_delayed_work(system_power_efficient_wq, &otg_boost_current_work, msecs_to_jiffies(10000));
 }
 
 
@@ -4289,7 +4305,7 @@ static int __init battery_probe(struct platform_device *dev)
 
 	mtk_battery_init(dev);
 	INIT_DELAYED_WORK(&otg_boost_current_work, otg_boost_limit_work);
-	schedule_delayed_work(&otg_boost_current_work, msecs_to_jiffies(10000));
+	queue_delayed_work(system_power_efficient_wq, &otg_boost_current_work, msecs_to_jiffies(10000));
 
 	/* Power supply class */
 #if !defined(CONFIG_MTK_DISABLE_GAUGE)

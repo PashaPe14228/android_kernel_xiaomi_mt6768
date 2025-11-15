@@ -281,7 +281,9 @@ static void swchg_select_charging_current_limit(struct charger_manager *info)
 
 		if (pdata->charging_current_limit > info->sw_jeita.cc)
 			pdata->charging_current_limit = info->sw_jeita.cc;
+#ifdef CONFIG_MTK_ENG_BUILD
 		pr_err("dhx---jeita_cc : %d\n", info->sw_jeita.cc);
+#endif
 	}
 
 	// if (pdata->thermal_charging_current_limit != -1) {
@@ -655,8 +657,6 @@ static int mtk_switch_charging_run(struct charger_manager *info)
 
 	do {
 		switch (swchgalg->state) {
-			chr_err("%s_2 [%d] %d\n", __func__, swchgalg->state,
-				info->pd_type);
 		case CHR_CC:
 			ret = mtk_switch_chr_cc(info);
 			break;

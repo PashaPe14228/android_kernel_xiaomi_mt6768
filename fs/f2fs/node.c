@@ -132,7 +132,7 @@ static struct page *get_next_nat_page(struct f2fs_sb_info *sbi, nid_t nid)
 
 	src_addr = page_address(src_page);
 	dst_addr = page_address(dst_page);
-	memcpy(dst_addr, src_addr, PAGE_SIZE);
+	copy_page(dst_addr, src_addr);
 	set_page_dirty(dst_page);
 	f2fs_put_page(src_page, 1);
 
@@ -2370,6 +2370,9 @@ static int __f2fs_build_free_nids(struct f2fs_sb_info *sbi,
 
 	if (unlikely(nid >= nm_i->max_nid))
 		nid = 0;
+
+	if (unlikely(nid % NAT_ENTRY_PER_BLOCK))
+		nid = NAT_BLOCK_OFFSET(nid) * NAT_ENTRY_PER_BLOCK;
 
 	/* Enough entries */
 	if (nm_i->nid_cnt[FREE_NID] >= NAT_ENTRY_PER_BLOCK)

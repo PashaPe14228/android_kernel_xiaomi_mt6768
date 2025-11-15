@@ -27,7 +27,6 @@
 
 /* ddp main/sub, mdp path 0/1/2/3, general(misc) */
 #define CMDQ_OP_CODE_MASK		(0xff << CMDQ_OP_CODE_SHIFT)
-#define CMDQ_IRQ_MASK			GENMASK(CMDQ_THR_MAX_COUNT - 1, 0)
 
 #define CMDQ_CURR_IRQ_STATUS		0x10
 #define CMDQ_CURR_LOADED_THR		0x18
@@ -116,6 +115,7 @@ struct cmdq_task {
 	u64			exec_time;
 };
 
+#if 0
 struct cmdq_buf_dump {
 	struct cmdq		*cmdq;
 	struct work_struct	dump_work;
@@ -124,6 +124,7 @@ struct cmdq_buf_dump {
 	size_t			cmd_buf_size;
 	u32			pa_offset; /* pa_curr - pa_base */
 };
+#endif
 
 #if IS_ENABLED(CONFIG_MMPROFILE)
 #include "../misc/mediatek/mmp/mmprofile.h"
@@ -152,6 +153,8 @@ struct cmdq {
 	phys_addr_t		base_pa;
 	u8			hwid;
 	u32			irq;
+	u32			thread_nr;
+	u32			irq_mask;
 	struct workqueue_struct	*buf_dump_wq;
 	struct cmdq_thread	thread[CMDQ_THR_MAX_COUNT];
 	u32			prefetch;
@@ -786,6 +789,7 @@ static void cmdq_task_exec_done(struct cmdq_task *task, s32 err)
 	list_del_init(&task->list_entry);
 }
 
+#if 0
 static void cmdq_buf_dump_schedule(struct cmdq_task *task, bool timeout,
 				   u32 pa_curr)
 {
@@ -806,6 +810,7 @@ static void cmdq_buf_dump_schedule(struct cmdq_task *task, bool timeout,
 		task->pkt->cmd_buf_size, pa_curr,
 		inst ? *inst : -1);
 }
+#endif
 
 static void cmdq_task_handle_error(struct cmdq_task *task)
 {
@@ -917,7 +922,7 @@ static void cmdq_thread_irq_handler(struct cmdq *cmdq,
 		} else if (err) {
 			cmdq_err("pkt:0x%p thread:%u err:%d",
 				curr_task->pkt, thread->idx, err);
-			cmdq_buf_dump_schedule(task, false, curr_pa);
+			//cmdq_buf_dump_schedule(task, false, curr_pa);
 			cmdq_task_exec_done(task, err);
 			cmdq_task_handle_error(curr_task);
 			list_add_tail(&task->list_entry, removes);
@@ -959,18 +964,18 @@ static irqreturn_t cmdq_irq_handler(int irq, void *dev)
 		return IRQ_HANDLED;
 	}
 
-	irq_status = readl(cmdq->base + CMDQ_CURR_IRQ_STATUS) & CMDQ_IRQ_MASK;
+	irq_status = readl(cmdq->base + CMDQ_CURR_IRQ_STATUS) & cmdq->irq_mask;
 	cmdq_log("gce:%lx irq: %#x, %#x",
 		(unsigned long)cmdq->base_pa, (u32)irq_status,
-		(u32)(irq_status ^ CMDQ_IRQ_MASK));
-	if (!(irq_status ^ CMDQ_IRQ_MASK)) {
+		(u32)(irq_status ^ cmdq->irq_mask));
+	if (!(irq_status ^ cmdq->irq_mask)) {
 		cmdq_msg("not handle for empty status:0x%x",
 			(u32)irq_status);
 		return IRQ_NONE;
 	}
 
 	INIT_LIST_HEAD(&removes);
-	for_each_clear_bit(bit, &irq_status, fls(CMDQ_IRQ_MASK)) {
+	for_each_clear_bit(bit, &irq_status, fls(cmdq->irq_mask)) {
 		struct cmdq_thread *thread = &cmdq->thread[bit];
 
 		cmdq_log("bit=%d, thread->base=%p", bit, thread->base);
@@ -1071,7 +1076,7 @@ static void cmdq_thread_handle_timeout_work(struct work_struct *work_item)
 		bool curr_task = cmdq_task_is_current_run(pa_curr, task->pkt);
 
 		if (first_task) {
-			cmdq_buf_dump_schedule(task, true, pa_curr);
+			//cmdq_buf_dump_schedule(task, true, pa_curr);
 			first_task = false;
 		}
 
@@ -1325,7 +1330,7 @@ void cmdq_thread_dump_all(void *mbox_cmdq)
 	if (usage <= 0)
 		return;
 
-	for (i = 0; i < ARRAY_SIZE(cmdq->thread); i++) {
+	for (i = 0; i < cmdq->thread_nr; i++) {
 		struct cmdq_thread *thread = &cmdq->thread[i];
 
 		if (!thread->occupied || list_empty(&thread->task_busy_list))
@@ -1357,7 +1362,7 @@ void cmdq_thread_dump_all_seq(void *mbox_cmdq, struct seq_file *seq)
 	if (usage <= 0)
 		return;
 
-	for (i = 0; i < ARRAY_SIZE(cmdq->thread); i++) {
+	for (i = 0; i < cmdq->thread_nr; i++) {
 		struct cmdq_thread *thread = &cmdq->thread[i];
 
 		if (!thread->occupied || list_empty(&thread->task_busy_list))
@@ -1540,7 +1545,7 @@ static int cmdq_suspend(struct device *dev)
 
 	cmdq->suspended = true;
 
-	for (i = 0; i < ARRAY_SIZE(cmdq->thread); i++) {
+	for (i = 0; i < cmdq->thread_nr; i++) {
 		thread = &cmdq->thread[i];
 		if (!list_empty(&thread->task_busy_list)) {
 			cmdq_mbox_thread_stop(thread);
@@ -1785,7 +1790,9 @@ static int cmdq_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	cmdq->thread_nr = plat_data->thread_nr;
 	gce_shift_bit = plat_data->shift;
+	cmdq->irq_mask = GENMASK(cmdq->thread_nr - 1, 0);
 
 	dev_notice(dev, "cmdq thread:%u shift:%u base:0x%lx pa:0x%lx\n",
 		plat_data->thread_nr, plat_data->shift,
@@ -1815,12 +1822,12 @@ static int cmdq_probe(struct platform_device *pdev)
 	}
 
 	cmdq->mbox.dev = dev;
-	cmdq->mbox.chans = devm_kcalloc(dev, CMDQ_THR_MAX_COUNT,
-					sizeof(*cmdq->mbox.chans), GFP_KERNEL);
+	cmdq->mbox.chans = devm_kcalloc(dev, plat_data->thread_nr,
+			sizeof(*cmdq->mbox.chans), GFP_KERNEL);
 	if (!cmdq->mbox.chans)
 		return -ENOMEM;
 
-	cmdq->mbox.num_chans = CMDQ_THR_MAX_COUNT;
+	cmdq->mbox.num_chans = plat_data->thread_nr;
 	cmdq->mbox.ops = &cmdq_mbox_chan_ops;
 	cmdq->mbox.of_xlate = cmdq_xlate;
 
@@ -1829,7 +1836,7 @@ static int cmdq_probe(struct platform_device *pdev)
 	cmdq->mbox.txdone_poll = false;
 
 
-	for (i = 0; i < ARRAY_SIZE(cmdq->thread); i++) {
+	for (i = 0; i < cmdq->thread_nr; i++) {
 		cmdq->thread[i].base = cmdq->base + CMDQ_THR_BASE +
 				CMDQ_THR_SIZE * i;
 		cmdq->thread[i].gce_pa = cmdq->base_pa;
@@ -1850,9 +1857,11 @@ static int cmdq_probe(struct platform_device *pdev)
 	}
 	dev_notice(dev, "register mailbox successfully\n");
 
+#if 0
 	cmdq->buf_dump_wq = alloc_ordered_workqueue(
 			"%s", WQ_MEM_RECLAIM | WQ_HIGHPRI,
 			"cmdq_buf_dump");
+#endif
 
 	cmdq->timeout_wq = create_singlethread_workqueue(
 		"cmdq_timeout_handler");

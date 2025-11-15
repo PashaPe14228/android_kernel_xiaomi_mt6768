@@ -3,6 +3,7 @@
  * fs/f2fs/segment.c
  *
  * Copyright (c) 2012 Samsung Electronics Co., Ltd.
+ * Copyright (C) 2021 XiaoMi, Inc.
  *             http://www.samsung.com/
  */
 #include <linux/fs.h>
@@ -603,8 +604,6 @@ repeat:
 	if (kthread_should_stop())
 		return 0;
 
-	sb_start_intwrite(sbi->sb);
-
 	if (!llist_empty(&fcc->issue_list)) {
 		struct flush_cmd *cmd, *next;
 		int ret;
@@ -624,8 +623,6 @@ repeat:
 		}
 		fcc->dispatch_list = NULL;
 	}
-
-	sb_end_intwrite(sbi->sb);
 
 	wait_event_interruptible(*q,
 		kthread_should_stop() || !llist_empty(&fcc->issue_list));
@@ -2134,6 +2131,8 @@ static void update_sit_entry(struct f2fs_sb_info *sbi, block_t blkaddr, int del)
 #endif
 
 	segno = GET_SEGNO(sbi, blkaddr);
+	if (segno == NULL_SEGNO)
+		return;
 
 	se = get_seg_entry(sbi, segno);
 	new_vblocks = se->valid_blocks + del;
@@ -2325,7 +2324,7 @@ void f2fs_update_meta_page(struct f2fs_sb_info *sbi,
 {
 	struct page *page = f2fs_grab_meta_page(sbi, blk_addr);
 
-	memcpy(page_address(page), src, PAGE_SIZE);
+	copy_page(page_address(page), src);
 	set_page_dirty(page);
 	f2fs_put_page(page, 1);
 }
@@ -2345,7 +2344,7 @@ static void write_current_sum_page(struct f2fs_sb_info *sbi,
 	struct f2fs_summary_block *dst;
 
 	dst = (struct f2fs_summary_block *)page_address(page);
-	memset(dst, 0, PAGE_SIZE);
+	clear_page(dst);
 
 	mutex_lock(&curseg->curseg_mutex);
 
@@ -3660,7 +3659,7 @@ static void write_compacted_summaries(struct f2fs_sb_info *sbi, block_t blkaddr)
 
 	page = f2fs_grab_meta_page(sbi, blkaddr++);
 	kaddr = (unsigned char *)page_address(page);
-	memset(kaddr, 0, PAGE_SIZE);
+	clear_page(kaddr);
 
 	/* Step 1: write nat cache */
 	seg_i = CURSEG_I(sbi, CURSEG_HOT_DATA);
@@ -3685,7 +3684,7 @@ static void write_compacted_summaries(struct f2fs_sb_info *sbi, block_t blkaddr)
 			if (!page) {
 				page = f2fs_grab_meta_page(sbi, blkaddr++);
 				kaddr = (unsigned char *)page_address(page);
-				memset(kaddr, 0, PAGE_SIZE);
+				clear_page(kaddr);
 				written_size = 0;
 			}
 			summary = (struct f2fs_summary *)(kaddr + written_size);

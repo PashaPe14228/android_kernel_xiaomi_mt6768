@@ -100,12 +100,17 @@ char *leds_name[TYPE_TOTAL] = {
 /****************************************************************************
  * DEBUG MACROS
  ***************************************************************************/
+#ifdef CONFIG_MTK_ENG_BUILD
 static int debug_enable_led_hal = 1;
 #define LEDS_DEBUG(format, args...) do { \
 	if (debug_enable_led_hal) {	\
 		pr_debug("[LED]"format, ##args);\
 	} \
 } while (0)
+#else
+static int debug_enable_led_hal = 0;
+#define LEDS_DEBUG(format, args...) ((void)0)
+#endif
 
 /*****************PWM *************************************************/
 #define PWM_DIV_NUM 8
@@ -253,14 +258,14 @@ struct cust_mt65xx_led *get_cust_led_dtsi(void)
 			   (long)chargepump_set_backlight_level;
 			LEDS_DEBUG("BL set by chargepump\n");
 #elif defined(CONFIG_KTD3136_SUPPORT) && defined(CONFIG_LM3697_SUPPORT)
-			printk("[%s]: *liuyundong*, bkl_id = %d\n", __func__, bkl_id);
+			LEDS_DEBUG("[%s]: *liuyundong*, bkl_id = %d\n", __func__, bkl_id);
 
 			if (bkl_id == 24) {
 				pled_dtsi[i].data = (long)ktd3137_brightness_set;
-				printk("[%s]: backlight is ktd3136 contrl!\n", __func__);
+				LEDS_DEBUG("[%s]: backlight is ktd3136 contrl!\n", __func__);
 			} else if (bkl_id == 1) {
 				pled_dtsi[i].data = (long)lm3697_set_brightness;
-				printk("[%s]: backlight is lm3697 contrl!\n", __func__);
+				LEDS_DEBUG("[%s]: backlight is lm3697 contrl!\n", __func__);
 			}
 #else
 			pled_dtsi[i].data = (long)mtkfb_set_backlight_level;

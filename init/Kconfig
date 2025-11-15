@@ -71,8 +71,7 @@ config CROSS_COMPILE
 
 config COMPILE_TEST
 	bool "Compile also drivers which will not load"
-	depends on !UML
-	default n
+	depends on HAS_IOMEM
 	help
 	  Some drivers can be compiled on a different platform than they are
 	  intended to be run on. Despite they cannot be loaded there (or even
@@ -563,7 +562,8 @@ config IKHEADERS
 
 config LOG_BUF_SHIFT
 	int "Kernel log buffer size (16 => 64KB, 17 => 128KB)"
-	range 12 25
+	range 12 25 if !H8300
+	range 12 19 if H8300
 	default 17
 	depends on PRINTK
 	help
@@ -1126,6 +1126,31 @@ config NET_NS
 
 endif # NAMESPACES
 
+config SCHED_CASS
+	bool "Capacity Aware Superset Scheduler"
+	depends on SMP
+	help
+	  This enables the Capacity Aware Superset Scheduler (CASS), which
+	  optimizes runqueue selection of CFS tasks. By using CPU capacity as a
+	  basis for comparing the relative utilization between different CPUs,
+	  CASS fairly balances load across CPUs of varying capacities. This
+	  results in improved multi-core performance, especially when CPUs are
+	  overutilized because CASS doesn't clip a CPU's utilization when it
+	  eclipses the CPU's capacity.
+
+	  As a superset of capacity aware scheduling, CASS implements a
+	  hierarchy of criteria to determine the better CPU to wake a task upon
+	  between CPUs that have the same relative utilization. This way,
+	  single-core performance, latency, and cache affinity are all optimized
+	  where possible.
+
+	  CASS doesn't feature explicit energy awareness but its basic load
+	  balancing principle results in decreased overall energy, often better
+	  than what is possible with explicit energy awareness. By fairly
+	  balancing load based on relative utilization, all CPUs are kept at
+	  their lowest P-state necessary to satisfy the overall load at any
+	  given moment.
+
 config SCHED_AUTOGROUP
 	bool "Automatic process group scheduling"
 	select CGROUPS
@@ -1581,6 +1606,16 @@ config ADVISE_SYSCALLS
 	  usage, improving performance. If building an embedded system where no
 	  applications use these syscalls, you can disable this option to save
 	  space.
+
+config BPF_UNPRIV_DEFAULT_OFF
+	bool "Disable unprivileged BPF by default"
+	depends on BPF_SYSCALL
+	help
+	  Disables unprivileged BPF by default by setting the corresponding
+	  /proc/sys/kernel/unprivileged_bpf_disabled knob to 2. An admin can
+	  still reenable it by setting it to 0 later on, or permanently
+	  disable it by setting it to 1 (from which no other transition to
+	  0 is possible anymore).
 
 config USERFAULTFD
 	bool "Enable userfaultfd() system call"
