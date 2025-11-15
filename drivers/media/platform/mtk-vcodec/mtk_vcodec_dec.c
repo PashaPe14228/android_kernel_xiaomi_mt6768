@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2016 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  * Author: PC Chen <pc.chen@mediatek.com>
  *         Tiffany Lin <tiffany.lin@mediatek.com>
  *

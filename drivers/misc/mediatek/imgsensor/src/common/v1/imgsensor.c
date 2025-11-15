@@ -606,6 +606,7 @@ int imgsensor_set_driver(struct IMGSENSOR_SENSOR *psensor)
 || defined(GALAHAD_MSM_CAMERA_HW_INFO) || defined(SHIVA_MSM_CAMERA_HW_INFO)
 					hq_imgsensor_sensor_hw_register(psensor, psensor_inst);
 #endif
+
 					ret = drv_idx;
 					break;
 				}

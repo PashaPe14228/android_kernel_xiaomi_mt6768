@@ -30,6 +30,7 @@
 #include <linux/fb.h>
 #include <linux/notifier.h>
 #endif
+
 #define CREATE_TRACE_POINTS
 #include <trace/events/thermal.h>
 
@@ -1796,7 +1797,6 @@ static int thermal_pm_notify(struct notifier_block *nb,
 static struct notifier_block thermal_pm_nb = {
 	.notifier_call = thermal_pm_notify,
 };
-
 
 static int __init thermal_init(void)
 {

@@ -41,18 +41,12 @@ static void do_register_otg_work(struct work_struct *data)
 {
 #define REGISTER_OTG_WORK_DELAY 500
 	static int ret;
-	//static int count;
 
 	if (!otg_tcpc_dev)
 		otg_tcpc_dev = tcpc_dev_get_by_name(TCPC_OTG_DEV_NAME);
 
 	if (!otg_tcpc_dev) {
 		DBG(0, "get type_c_port0 fail\n");
-		/*count++;
-		if (count > 15) {
-			DBG(0, "get type_c_port0 fail ---wwwzzzyyy count > 15\n");
-		   return;
-		}*/
 		queue_delayed_work(mtk_musb->st_wq, &register_otg_work,
 				msecs_to_jiffies(REGISTER_OTG_WORK_DELAY));
 		return;
@@ -385,7 +379,6 @@ void mt_usb_host_disconnect(int delay)
 }
 #ifdef CONFIG_MTK_USB_TYPEC
 #ifdef CONFIG_TCPC_CLASS
-
 static int otg_tcp_notifier_call(struct notifier_block *nb,
 		unsigned long event, void *data)
 {

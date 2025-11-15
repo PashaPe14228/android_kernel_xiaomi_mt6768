@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2015 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -8758,7 +8757,7 @@ done:
 	return ret;
 #endif
 	struct ddp_lcm_read_cmd_table read_table;
-	int recv_data_cnt;
+	int  recv_data_cnt;
 	char read_buffer[16];
 
 	memset(&read_table, 0,
@@ -8792,7 +8791,6 @@ done:
 		}
 	}
 	return false;
-
 }
 
 static int Panel_Master_primary_display_config_dsi(const char *name,

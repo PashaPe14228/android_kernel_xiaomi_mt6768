@@ -483,9 +483,6 @@ struct SCP_SENSOR_HUB_SEC_PCAL {
 	int sec_pcali;
 };
 
-
-
-
 struct SCP_SENSOR_HUB_SET_CUST_REQ {
 	uint8_t sensorType;
 	uint8_t action;
@@ -505,8 +502,8 @@ struct SCP_SENSOR_HUB_SET_CUST_REQ {
 		struct SCP_SENSOR_HUB_SHOW_ALSVAL showAlsval;
 		struct SCP_SENSOR_HUB_SET_FACTORY setFactory;
 		struct scp_sensor_hub_get_sensor_info getInfo;
-    struct SCP_SENSOR_HUB_LCM_INFO lcm_info;    // new add for lcm info
-      struct SCP_SENSOR_HUB_SEC_PCAL sec_pcali;    // new add for sec_pcal
+		struct SCP_SENSOR_HUB_LCM_INFO lcm_info;    // new add for lcm info
+		struct SCP_SENSOR_HUB_SEC_PCAL sec_pcali;   // new add for sec_pcal
 	};
 };
 

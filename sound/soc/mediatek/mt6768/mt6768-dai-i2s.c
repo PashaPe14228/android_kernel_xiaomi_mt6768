@@ -68,7 +68,6 @@ static unsigned int get_i2s_wlen(snd_pcm_format_t format)
 #define MTK_I2S2_GPIO_KCONTROL_NAME "I2S2_GPIO"
 #define MTK_I2S3_GPIO_KCONTROL_NAME "I2S3_GPIO"
 
-
 #define I2S0_HD_EN_W_NAME "I2S0_HD_EN"
 #define I2S1_HD_EN_W_NAME "I2S1_HD_EN"
 #define I2S2_HD_EN_W_NAME "I2S2_HD_EN"
@@ -125,7 +124,6 @@ static const struct soc_enum mt6768_i2s_gpio_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(mt6768_i2s_gpio_str),
 			    mt6768_i2s_gpio_str),
 };
-
 
 static int mt6768_i2s_hd_get(struct snd_kcontrol *kcontrol,
 			     struct snd_ctl_elem_value *ucontrol)
@@ -203,7 +201,6 @@ static int mt6768_i2s_gpio_Set(struct snd_kcontrol *kcontrol,
 
 	return 0;
 }
-
 
 static const struct snd_kcontrol_new mtk_dai_i2s_controls[] = {
 	SOC_ENUM_EXT(MTK_AFE_I2S0_KCONTROL_NAME, mt6768_i2s_enum[0],

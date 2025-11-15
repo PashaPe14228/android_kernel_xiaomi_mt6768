@@ -3,7 +3,6 @@
  * mddp_debug.h - Public API/structure provided for logging.
  *
  * Copyright (c) 2020 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 

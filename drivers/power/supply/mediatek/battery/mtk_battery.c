@@ -109,6 +109,7 @@ int force_temp;
 int otg_limit = -1;
 int otg_ibat_limit = -1;
 extern int my_battery_id_voltage;
+
 static int adc_cali_slop[14] = {
 	1000, 1000, 1000, 1000, 1000, 1000,
 	1000, 1000, 1000, 1000, 1000, 1000,
@@ -121,6 +122,7 @@ static int battery_out_data[1] = { 0 };
 static bool g_ADC_Cali;
 struct delayed_work	otg_boost_current_work;
 int cycle_count;
+
 static enum power_supply_property battery_props[] = {
 	POWER_SUPPLY_PROP_STATUS,
 	POWER_SUPPLY_PROP_HEALTH,
@@ -380,7 +382,6 @@ signed int battery_meter_get_VSense(void)
 	else
 		return pmic_get_ibus();
 }
-
 
 static int bms_get_property(struct power_supply *psy,
 		enum power_supply_property psp, union power_supply_propval *val)
@@ -1824,7 +1825,6 @@ int force_get_tbat_internal(bool update)
 	return bat_temperature_val / 10;
 }
 
-
 int force_get_tbat(bool update)
 {
 #ifndef FIXED_TBAT_25
@@ -1892,6 +1892,7 @@ int force_get_tbat(bool update)
 	gm.ntc_disable_nafg = false;
 	bm_debug("[%s] t:%d precise:%d\n", __func__,
 		bat_temperature_val, gm.tbat_precise);
+
 	return bat_temperature_val;
 #endif
 }
@@ -4289,6 +4290,7 @@ static int __init battery_probe(struct platform_device *dev)
 	mtk_battery_init(dev);
 	INIT_DELAYED_WORK(&otg_boost_current_work, otg_boost_limit_work);
 	schedule_delayed_work(&otg_boost_current_work, msecs_to_jiffies(10000));
+
 	/* Power supply class */
 #if !defined(CONFIG_MTK_DISABLE_GAUGE)
 	battery_main.psy =

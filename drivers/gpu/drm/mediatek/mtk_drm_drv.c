@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  * Author: YT SHEN <yt.shen@mediatek.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -1671,8 +1670,7 @@ static int mtk_drm_fence_release_thread(void *data)
 		DDPINFO("%s:%d wait vblank-\n", __func__, __LINE__);
 
 		mutex_lock(&private->commit.lock);
-		if (private->session_id[0] > 0)
-			mtk_release_present_fence(private->session_id[0],
+		mtk_release_present_fence(private->session_id[0],
 					  atomic_read(&_mtk_fence_idx[0]));
 		mutex_unlock(&private->commit.lock);
 	}

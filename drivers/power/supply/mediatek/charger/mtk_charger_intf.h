@@ -411,7 +411,6 @@ struct charger_manager {
 	int	rp_lvl;
 
 	int pd_type;
-	//struct tcpc_device *tcpc;
 	bool pd_reset;
 
 	/* thread related */
@@ -433,7 +432,7 @@ struct charger_manager {
 	bool charger_thread_polling;
 
 	/* kpoc */
-	atomic_t  enable_kpoc_shdn;
+	atomic_t enable_kpoc_shdn;
 
 	/* ATM */
 	bool atm_enabled;
@@ -462,7 +461,6 @@ struct charger_manager {
 	u_int g_scd_pid;
 	struct scd_cmd_param_t_1 sc_data;
 };
-
 
 struct chg_type_info {
 	struct device *dev;

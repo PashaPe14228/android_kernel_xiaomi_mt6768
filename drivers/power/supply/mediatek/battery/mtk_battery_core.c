@@ -85,11 +85,13 @@
 #include <linux/of_platform.h> /*of_find_node_by_name*/
 
 
+
 /* ============================================================ */
 /* global variable */
 /* ============================================================ */
 struct mtk_battery gm;
 int mtk_qmax_aging;
+
 /* ============================================================ */
 /* gauge hal interface */
 /* ============================================================ */
@@ -362,7 +364,6 @@ bool __attribute__ ((weak)) mt_usb_is_device(void)
 int my_battery_id_voltage;
 void fgauge_get_profile_id(void)
 {
-
 	int id_volt = 0;
 	int ret = 0;
 	int auxadc_voltage = 0;
@@ -421,7 +422,6 @@ void fgauge_get_profile_id(void)
 		__func__, gm.battery_id, id_volt);
 
 }
-
 #elif defined(MTK_GET_BATTERY_ID_BY_GPIO)
 void fgauge_get_profile_id(void)
 {

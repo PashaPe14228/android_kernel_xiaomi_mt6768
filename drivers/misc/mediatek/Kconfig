@@ -444,6 +444,5 @@ source "drivers/misc/mediatek/simtray/Kconfig"
 source "drivers/misc/mediatek/hdmi/Kconfig"
 source "drivers/misc/mediatek/otp/Kconfig"
 
-
 endmenu    # Misc
 

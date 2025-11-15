@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2015 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  * Author:
  *  Zhigang.Wei <zhigang.wei@mediatek.com>
  *  Chunfeng.Yun <chunfeng.yun@mediatek.com>

@@ -3,7 +3,6 @@
  * mddp_dev.c - MDDP device node API.
  *
  * Copyright (c) 2020 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #include <linux/cdev.h>

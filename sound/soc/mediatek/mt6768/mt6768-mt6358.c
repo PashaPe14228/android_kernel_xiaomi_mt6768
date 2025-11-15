@@ -127,8 +127,6 @@ static const struct snd_kcontrol_new mt6768_mt6358_controls[] = {
 		     mt6768_spk_i2s_in_type_get, NULL),
 };
 
-
-
 #ifdef CONFIG_TARGET_PRODUCT_MERLINCOMMON
 static int cs35l41_dailink_init(struct snd_soc_pcm_runtime *rtd)
 {

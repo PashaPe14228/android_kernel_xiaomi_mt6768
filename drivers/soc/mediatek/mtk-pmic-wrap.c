@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2019 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  * Author: Brian-py Chen, MediaTek
  *
  * This program is free software; you can redistribute it and/or modify

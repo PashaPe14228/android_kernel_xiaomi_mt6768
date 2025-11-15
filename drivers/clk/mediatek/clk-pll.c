@@ -1,6 +1,5 @@
 /*
  * Copyright (c) 2014 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  * Author: James Liao <jamesjj.liao@mediatek.com>
  *
  * This program is free software; you can redistribute it and/or modify
@@ -139,7 +138,6 @@ static void mtk_pll_set_rate_regs(struct mtk_clk_pll *pll, u32 pcw,
 	val &= ~GENMASK(pll->data->pcw_shift + pll->data->pcwbits - 1,
 			pll->data->pcw_shift);
 	val |= pcw << pll->data->pcw_shift;
-
 	writel(val, pll->pcw_addr);
 
 	if (pll->tuner_addr)

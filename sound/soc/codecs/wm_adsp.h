@@ -89,6 +89,7 @@ struct wm_adsp {
 	struct device *dev;
 	struct regmap *regmap;
 	struct snd_soc_codec *codec;
+
 	unsigned int base;
 	int cal_z;
 	int ambient;
@@ -144,6 +145,7 @@ struct wm_adsp {
 	char *wmfw_file_name;
 	char *bin_file_name;
 #endif
+
 };
 
 #define WM_ADSP1(wname, num) \

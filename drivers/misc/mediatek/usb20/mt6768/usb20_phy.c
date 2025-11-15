@@ -108,7 +108,6 @@ void usb_phy_switch_to_usb(void)
 #define SHFT_RG_USB20_TERM_VREF_SEL 8
 #define OFFSET_RG_USB20_PHY_REV6 0x18
 #define SHFT_RG_USB20_PHY_REV6 30
-
 #define HOST_VRT_REF		4
 #define HOST_TERM_REF		4
 #define HOST_ENHANCE		1
@@ -117,7 +116,6 @@ void usb_phy_switch_to_usb(void)
 #define DEVICE_ENHANCE		3
 void usb_phy_tuning(void)
 {
-
 	if (mtk_musb->is_host) {
 		USBPHY_CLR32(OFFSET_RG_USB20_VRT_VREF_SEL,
 				VAL_MAX_WIDTH_3 << SHFT_RG_USB20_VRT_VREF_SEL);

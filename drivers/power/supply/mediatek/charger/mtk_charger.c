@@ -1313,9 +1313,9 @@ static ssize_t store_sw_jeita(struct device *dev, struct device_attribute *attr,
 	if (kstrtoint(buf, 10, &temp) == 0) {
 		if (temp == 0)
 			pinfo->enable_sw_jeita = false;
-		else
+		else {
 			pinfo->enable_sw_jeita = true;
-
+		}
 	} else {
 		chr_err("%s: format error!\n", __func__);
 	}
@@ -2082,6 +2082,7 @@ static int charger_routine_thread(void *arg)
 		spin_lock_irqsave(&info->slock, flags);
 		if (!info->charger_wakelock.active)
 			__pm_stay_awake(&info->charger_wakelock);
+
 		spin_unlock_irqrestore(&info->slock, flags);
 		info->charger_thread_timeout = false;
 		bat_current = battery_get_bat_current();
@@ -2137,6 +2138,7 @@ static int mtk_charger_parse_dt(struct charger_manager *info,
 {
 	struct device_node *np = dev->of_node;
 	u32 val;
+
 	chr_err("%s: starts\n", __func__);
 
 	if (!np) {
@@ -3981,6 +3983,7 @@ static int mtk_charger_probe(struct platform_device *pdev)
 
 	info->sw_jeita.error_recovery_flag = true;
 	info->is_input_suspend = false;
+
 	mtk_charger_init_timer(info);
 
 	kthread_run(charger_routine_thread, info, "charger_thread");

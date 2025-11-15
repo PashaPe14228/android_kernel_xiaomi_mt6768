@@ -49,6 +49,7 @@
 #include <mt-plat/charger_type.h>
 #include <pmic.h>
 #include <tcpm.h>
+
 #include "../../../../misc/mediatek/typec/tcpc/inc/tcpci_core.h"
 #include "mtk_charger_intf.h"
 
@@ -206,6 +207,7 @@ static int mt_charger_online(struct mt_charger *mtk_chg)
 	int ret = 0;
 	int boot_mode = 0;
 	int vbus = 0;
+
 	if (!mtk_chg->chg_online) {
 		boot_mode = get_boot_mode();
 		if (boot_mode == KERNEL_POWER_OFF_CHARGING_BOOT ||
@@ -290,10 +292,11 @@ static int mt_charger_set_property(struct power_supply *psy,
 		/* usb */
 		if ((mtk_chg->chg_type == STANDARD_HOST) ||
 			(mtk_chg->chg_type == CHARGING_HOST) ||
-			(mtk_chg->chg_type == NONSTANDARD_CHARGER))
+			(mtk_chg->chg_type == NONSTANDARD_CHARGER)) {
 			mt_usb_connect();
-		else
+		} else {
 			mt_usb_disconnect();
+		}
 	}
 
 	queue_work(cti->chg_in_wq, &cti->chg_in_work);
@@ -617,9 +620,9 @@ static void plug_in_out_handler(struct chg_type_info *cti, bool en, bool ignore)
 	cti->chgdet_en = en;
 	cti->ignore_usb = ignore;
 	cti->plugin = en;
+	//atomic_inc(&cti->chgdet_cnt);
+	//wake_up_interruptible(&cti->waitq);
 	charger_manager_enable_chg_type_det(en);
-	// atomic_inc(&cti->chgdet_cnt);
-	// wake_up_interruptible(&cti->waitq);
 	mutex_unlock(&cti->chgdet_lock);
 }
 
@@ -646,9 +649,9 @@ static int pd_tcp_notifier_call(struct notifier_block *pnb,
 	struct tcp_notify *noti = data;
 	struct chg_type_info *cti = container_of(pnb,
 	struct chg_type_info, pd_nb);
-
 	static struct charger_device *primary_charger;
 	primary_charger = get_charger_by_name("primary_chg");
+
 	switch (event) {
 	case TCP_NOTIFY_TYPEC_STATE:
 		if (noti->typec_state.old_state == TYPEC_UNATTACHED &&
@@ -937,6 +940,7 @@ static int mt_charger_resume(struct device *dev)
 	power_supply_changed(mt_charger->ac_psy);
 	power_supply_changed(mt_charger->usb_psy);
 	power_supply_changed(mt_charger->main_psy);
+
 	return 0;
 }
 #endif
@@ -962,7 +966,7 @@ static struct platform_driver mt_charger_driver = {
 /* Legacy api to prevent build error */
 bool upmu_is_chr_det(void)
 {
-	struct mt_charger *mtk_chg;
+	struct mt_charger *mtk_chg = NULL;
 	struct power_supply *psy = power_supply_get_by_name("charger");
 
 	if (!psy) {
@@ -985,7 +989,7 @@ bool pmic_chrdet_status(void)
 
 enum charger_type mt_get_charger_type(void)
 {
-	struct mt_charger *mtk_chg;
+	struct mt_charger *mtk_chg = NULL;
 	struct power_supply *psy = power_supply_get_by_name("charger");
 
 	if (!psy) {
@@ -998,9 +1002,9 @@ enum charger_type mt_get_charger_type(void)
 
 bool mt_charger_plugin(void)
 {
-	struct mt_charger *mtk_chg;
+	struct mt_charger *mtk_chg = NULL;
 	struct power_supply *psy = power_supply_get_by_name("charger");
-	struct chg_type_info *cti;
+	struct chg_type_info *cti = NULL;
 
 	if (!psy) {
 		pr_info("%s: get power supply failed\n", __func__);

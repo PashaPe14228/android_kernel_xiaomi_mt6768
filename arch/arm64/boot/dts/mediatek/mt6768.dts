@@ -3364,8 +3364,6 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		compatible = "mediatek,radio_md_cfg";
 	};
 
-
-
 	mt_charger: mt_charger {
 		compatible = "mediatek,mt-charger";
 	};
@@ -3455,7 +3453,6 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 		min_charge_temp_plus_x_degree = <6>;
 		max_charge_temp = <50>;
 		max_charge_temp_minus_x_degree = <47>;
-
 
 		/* PE */
 		pe_ichg_level_threshold = <1000000>; /* uA */
@@ -3798,7 +3795,6 @@ defined(CONFIG_MTK_CAM_SECURITY_SUPPORT)
 			pinmux = <PINMUX_GPIO143__FUNC_VOW_CLK_MISO>;
 		};
 	};
-
 
 	reverse_high: reverse_high {
 		pins_cmd_dat {

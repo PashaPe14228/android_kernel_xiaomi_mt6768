@@ -11,7 +11,7 @@
  * published by the Free Software Foundation.
  */
 #define DEBUG
-//#define WM_ADSP_DEBUG
+
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/init.h>

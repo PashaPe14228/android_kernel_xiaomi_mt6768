@@ -3,7 +3,6 @@
  * mddp_ipc.h - Structure used for AP/MD communication.
  *
  * Copyright (c) 2020 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #ifndef __MDDP_IPC_H

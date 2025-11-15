@@ -124,6 +124,7 @@
 /* SENSOR CHIP VERSION */
 /*IMX*/
 #define IMX499_SENSOR_ID                        0x0499
+#define IMX481_SENSOR_ID                        0x0481
 #define IMX486_SENSOR_ID                        0x0486
 #define IMX586_SENSOR_ID                        0x0586
 #define IMX519_SENSOR_ID                        0x0519
@@ -138,6 +139,7 @@
 #define IMX338_SENSOR_ID                        0x0338
 #define IMX376_SENSOR_ID                        0x0376
 #define IMX318_SENSOR_ID                        0x0318
+#define IMX319_SENSOR_ID                        0x0319
 #define IMX377_SENSOR_ID                        0x0377
 #define IMX278_SENSOR_ID                        0x0278
 #define IMX258_SENSOR_ID                        0x0258
@@ -165,6 +167,7 @@
 #define OV12A10_SENSOR_ID                       0x1241
 #define OV13870_SENSOR_ID                       0x013870
 #define OV13850_SENSOR_ID                       0xD850
+#define OV13855_SENSOR_ID                       0xD855
 #define OV16885_SENSOR_ID                       0x16885
 #define OV13855MAIN2_SENSOR_ID                  0xD856
 #define OV12830_SENSOR_ID                       0xC830
@@ -176,8 +179,8 @@
 #define OV8858_SENSOR_ID                        0x8858
 #define OV8858S_SENSOR_ID                      (0x8858+1)
 #define OV8856_SENSOR_ID                        0x885A
-#define OV8856_QTECH_ULTRA_SENSOR_ID                        0x885B
-#define OV8856_QTECH_FRONT_SENSOR_ID                        0x885C
+#define OV8856_QTECH_ULTRA_SENSOR_ID            0x885B
+#define OV8856_QTECH_FRONT_SENSOR_ID            0x885C
 #define OV8830_SENSOR_ID                        0x8830
 #define OV8825_SENSOR_ID                        0x8825
 #define OV7675_SENSOR_ID                        0x7673
@@ -201,6 +204,7 @@
 #define OV2680_SUNNY_SENSOR_ID                  0x2680
 #define OV2680_SUNNY_SENSOR_INDIA_ID            0x2679
 #define OV2680MIPI_SENSOR_ID                    0x2680
+#define OV2680_SENSOR_ID                        0x2680
 #define OV2659_SENSOR_ID                        0x2656
 #define OV2655_SENSOR_ID                        0x2656
 #define OV2650_SENSOR_ID                        0x2652
@@ -208,25 +212,24 @@
 #define OV2650_SENSOR_ID_2                      0x2652
 #define OV2650_SENSOR_ID_3                      0x2655
 #define OV20880MIPI_SENSOR_ID                   0x20880
-
 #define OV13B10_SENSOR_ID                       0x560D42
 #define OV13B10_SUNNY_SENSOR_ID                 0x560D43
-#define OV13B10_SENSOR_INDIA_ID                       0x560D46
-#define OV13B10_SUNNY_SENSOR_INDIA_ID                 0x560D47
+#define OV13B10_SENSOR_INDIA_ID                 0x560D46
+#define OV13B10_SUNNY_SENSOR_INDIA_ID           0x560D47
 #define OV13B10_OFILM_SENSOR_ID                 0x560D44
 #define OV13B10_QTECH_SENSOR_ID                 0x560D45
-#define S5K3L6_QTECH_SENSOR_ID                 0x30C6
+#define S5K3L6_QTECH_SENSOR_ID                  0x30C6
 #define OV2180_SENSOR_ID                        0x2682
 #define OV2180_SUNNY_SENSOR_ID                  0x2681
-#define OV2180_SENSOR_INDIA_ID                       0x2685
-#define OV2180_SUNNY_SENSOR_INDIA_ID                 0x2686
+#define OV2180_SENSOR_INDIA_ID                  0x2685
+#define OV2180_SUNNY_SENSOR_INDIA_ID            0x2686
 #define OV2180_OFILM_SENSOR_ID                  0x2683
 #define OV2180_QTECH_SENSOR_ID                  0x2684
 /*S5K*/
-#define S5KGM1SP_SENSOR_ID		        0x08d1
-#define S5KGM1SP_SUNNY_SENSOR_ID		        0x08d2
-#define S5KGM1SP_SENSOR_INDIA_ID 0x08d3
-#define S5KGM1SP_SUNNY_SENSOR_INDIA_ID 0x08d4
+#define S5KGM1SP_SENSOR_ID                      0x08d1
+#define S5KGM1SP_SUNNY_SENSOR_ID                0x08d2
+#define S5KGM1SP_SENSOR_INDIA_ID                0x08d3
+#define S5KGM1SP_SUNNY_SENSOR_INDIA_ID          0x08d4
 #define OV05A20_SENSOR_ID	                    0x5305
 
 /*S5K*/
@@ -235,8 +238,8 @@
 #define S5K4H7_SENSOR_ID                        0x487B
 #define S5K4H7YX_SENSOR_ID                      0x487B
 #define S5K4H7YX_SUNNY_SENSOR_ID                0x487C
-#define S5K4H7YX_SENSOR_INDIA_ID 0x4882
-#define S5K4H7YX_SUNNY_SENSOR_INDIA_ID   0x4883
+#define S5K4H7YX_SENSOR_INDIA_ID                0x4882
+#define S5K4H7YX_SUNNY_SENSOR_INDIA_ID          0x4883
 #define S5K4H7YX_OFILM_FRONT_SENSOR_ID          0x487D
 #define S5K4H7YX_OFILM_ULTRA_SENSOR_ID          0x487E
 #define S5K4H7YX_QTECH_FRONT_SENSOR_ID          0x4880
@@ -247,6 +250,7 @@
 #define S5K2L7_SENSOR_ID                        0x20C7
 #define S5K3L8_SENSOR_ID                        0x30C8
 #define S5K3M3_SENSOR_ID                        0x30D3
+#define S5K3M5SX_SENSOR_ID                      0x30D5
 #define S5K2X8_SENSOR_ID                        0x2188
 #define S5K2P7_SENSOR_ID                        0x2107
 #define S5K2P8_SENSOR_ID                        0x2108
@@ -278,11 +282,10 @@
 #define S5K5E8YX_SENSOR_ID                      0x5e80
 #define S5K5E8YXREAR2_SENSOR_ID                 0x5e81
 #define S5K5E9_SENSOR_ID                        0x559b
-#define S5K5E9_SUNNY_SENSOR_ID                        0x559C
-#define S5K5E9_SENSOR_INDIA_ID 0x559d
-#define S5K5E9_SUNNY_SENSOR_INDIA_ID 0x559e
+#define S5K5E9_SUNNY_SENSOR_ID                  0x559C
+#define S5K5E9_SENSOR_INDIA_ID                  0x559d
+#define S5K5E9_SUNNY_SENSOR_INDIA_ID            0x559e
 #define S5KHM2SP_SENSOR_ID                      0x1AD2
-
 /*HI*/
 #define HI841_SENSOR_ID                         0x0841
 #define HI707_SENSOR_ID                         0x00b8
@@ -324,8 +327,8 @@
 #define MT9P017MIPI_SENSOR_ID                   0x4800
 #define MT9T113MIPI_SENSOR_ID                   0x4680
 /*GC*/
-#define GC5035_OFILM_SENSOR_ID                        0x5035
-#define GC5035_QTECH_SENSOR_ID                        0x5036
+#define GC5035_OFILM_SENSOR_ID                  0x5035
+#define GC5035_QTECH_SENSOR_ID                  0x5036
 #define GC2375_SENSOR_ID                        0x2375
 #define GC2375H_SENSOR_ID                       0x2375
 #define GC2375SUB_SENSOR_ID                     0x2376
@@ -340,14 +343,14 @@
 #define GC0310_SENSOR_ID                        0xa310
 #define GC0313MIPI_YUV_SENSOR_ID                0xD0
 #define GC0312_SENSOR_ID                        0xb310
-#define GC02M1_SENSOR_ID			0x02E0
-#define GC02M1_SUNNY_SENSOR_ID			0x02E1
-#define GC02M1_MACRO_SENSOR_ID			0x02E2
-#define GC02M1_MACRO_SUNNY_SENSOR_ID		0x02E3
-#define GC02M1_SENSOR_INDIA_ID 0x02e4
-#define GC02M1_SUNNY_SENSOR_INDIA_ID 0x02e5
-#define GC02M1_MACRO_SENSOR_INDIA_ID 0x02e6
-#define GC02M1_MACRO_SUNNY_SENSOR_INDIA_ID 0x02e7
+#define GC02M1_SENSOR_ID                        0x02E0
+#define GC02M1_SUNNY_SENSOR_ID                  0x02E1
+#define GC02M1_MACRO_SENSOR_ID                  0x02E2
+#define GC02M1_MACRO_SUNNY_SENSOR_ID            0x02E3
+#define GC02M1_SENSOR_INDIA_ID                  0x02e4
+#define GC02M1_SUNNY_SENSOR_INDIA_ID            0x02e5
+#define GC02M1_MACRO_SENSOR_INDIA_ID            0x02e6
+#define GC02M1_MACRO_SUNNY_SENSOR_INDIA_ID      0x02e7
 /*SP*/
 #define SP0A19_YUV_SENSOR_ID                    0xA6
 #define SP2518_YUV_SENSOR_ID                    0x53
@@ -408,6 +411,7 @@
 /*IMX*/
 #define SENSOR_DRVNAME_IMX499_MIPI_RAW          "imx499_mipi_raw"
 #define SENSOR_DRVNAME_IMX499_MIPI_RAW_13M      "imx499_mipi_raw_13m"
+#define SENSOR_DRVNAME_IMX481_MIPI_RAW          "imx481_mipi_raw"
 #define SENSOR_DRVNAME_IMX486_MIPI_RAW          "imx486_mipi_raw"
 #define SENSOR_DRVNAME_IMX586_MIPI_RAW          "imx586_mipi_raw"
 #define SENSOR_DRVNAME_IMX519_MIPI_RAW          "imx519_mipi_raw"
@@ -423,6 +427,7 @@
 #define SENSOR_DRVNAME_IMX338_MIPI_RAW          "imx338_mipi_raw"
 #define SENSOR_DRVNAME_IMX376_MIPI_RAW          "imx376_mipi_raw"
 #define SENSOR_DRVNAME_IMX318_MIPI_RAW          "imx318_mipi_raw"
+#define SENSOR_DRVNAME_IMX319_MIPI_RAW          "imx319_mipi_raw"
 #define SENSOR_DRVNAME_IMX377_MIPI_RAW          "imx377_mipi_raw"
 #define SENSOR_DRVNAME_IMX278_MIPI_RAW          "imx278_mipi_raw"
 #define SENSOR_DRVNAME_IMX258_MIPI_RAW          "imx258_mipi_raw"
@@ -445,6 +450,7 @@
 #define SENSOR_DRVNAME_OV16880_MIPI_RAW         "ov16880_mipi_raw"
 #define SENSOR_DRVNAME_OV16885_MIPI_RAW         "ov16885_mipi_raw"
 #define SENSOR_DRVNAME_OV16825_MIPI_RAW         "ov16825_mipi_raw"
+#define SENSOR_DRVNAME_OV13855_MIPI_RAW         "ov13855_mipi_raw"
 #define SENSOR_DRVNAME_OV13870_MIPI_RAW         "ov13870_mipi_raw"
 #define SENSOR_DRVNAME_OV13855_MIPI_RAW         "ov13855_mipi_raw"
 #define SENSOR_DRVNAME_OV13855MAIN2_MIPI_RAW    "ov13855main2_mipi_raw"
@@ -494,19 +500,18 @@
 #define SENSOR_DRVNAME_OV2655_YUV               "ov2655_yuv"
 #define SENSOR_DRVNAME_OV2650_RAW               "ov265x_raw"
 #define SENSOR_DRVNAME_OV20880_MIPI_RAW         "ov20880_mipi_raw"
-
 #define SENSOR_DRVNAME_OV13B10_MIPI_RAW         "ov13b10_mipi_raw"
-#define SENSOR_DRVNAME_OV13B10_SUNNY_MIPI_RAW         "ov13b10_sunny_mipi_raw"
-#define SENSOR_DRVNAME_OV13B10_MIPI_RAW_FACTORY         "ov13b10_mipi_raw_factory"
+#define SENSOR_DRVNAME_OV13B10_SUNNY_MIPI_RAW   "ov13b10_sunny_mipi_raw"
+#define SENSOR_DRVNAME_OV13B10_MIPI_RAW_FACTORY "ov13b10_mipi_raw_factory"
 #define SENSOR_DRVNAME_OV13B10_SUNNY_MIPI_RAW_FACTORY         "ov13b10_sunny_mipi_raw_factory"
-#define SENSOR_DRVNAME_OV13B10_OFILM_MIPI_RAW         "ov13b10_ofilm_mipi_raw"
-#define SENSOR_DRVNAME_OV13B10_QTECH_MIPI_RAW         "ov13b10_qtech_mipi_raw"
-#define SENSOR_DRVNAME_S5K3L6_QTECH_MIPI_RAW         "s5k3l6_qtech_mipi_raw"
-#define SENSOR_DRVNAME_OV2180_MIPI_RAW         "ov2180_mipi_raw"
-#define SENSOR_DRVNAME_OV2180_SUNNY_MIPI_RAW         "ov2180_sunny_mipi_raw"
-#define SENSOR_DRVNAME_OV2180_OFILM_MIPI_RAW         "ov2180_ofilm_mipi_raw"
-#define SENSOR_DRVNAME_OV2180_QTECH_MIPI_RAW         "ov2180_qtech_mipi_raw"
-#define SENSOR_DRVNAME_OV2180_MIPI_RAW_FACTORY         "ov2180_mipi_raw_factory"
+#define SENSOR_DRVNAME_OV13B10_OFILM_MIPI_RAW   "ov13b10_ofilm_mipi_raw"
+#define SENSOR_DRVNAME_OV13B10_QTECH_MIPI_RAW   "ov13b10_qtech_mipi_raw"
+#define SENSOR_DRVNAME_S5K3L6_QTECH_MIPI_RAW    "s5k3l6_qtech_mipi_raw"
+#define SENSOR_DRVNAME_OV2180_MIPI_RAW          "ov2180_mipi_raw"
+#define SENSOR_DRVNAME_OV2180_SUNNY_MIPI_RAW    "ov2180_sunny_mipi_raw"
+#define SENSOR_DRVNAME_OV2180_OFILM_MIPI_RAW    "ov2180_ofilm_mipi_raw"
+#define SENSOR_DRVNAME_OV2180_QTECH_MIPI_RAW    "ov2180_qtech_mipi_raw"
+#define SENSOR_DRVNAME_OV2180_MIPI_RAW_FACTORY  "ov2180_mipi_raw_factory"
 #define SENSOR_DRVNAME_OV2180_SUNNY_MIPI_RAW_FACTORY         "ov2180_sunny_mipi_raw_factory"
 /*S5K*/
 #define SENSOR_DRVNAME_S5KGM1SP_MIPI_RAW        "s5kgm1sp_mipi_raw"
@@ -526,6 +531,7 @@
 #define SENSOR_DRVNAME_S5K2L7_MIPI_RAW          "s5k2l7_mipi_raw"
 #define SENSOR_DRVNAME_S5K3L8_MIPI_RAW          "s5k3l8_mipi_raw"
 #define SENSOR_DRVNAME_S5K3M3_MIPI_RAW          "s5k3m3_mipi_raw"
+#define SENSOR_DRVNAME_S5K3M5SX_MIPI_RAW        "s5k3m5sx_mipi_raw"
 #define SENSOR_DRVNAME_S5K2X8_MIPI_RAW          "s5k2x8_mipi_raw"
 #define SENSOR_DRVNAME_S5K2P7_MIPI_RAW          "s5k2p7_mipi_raw"
 #define SENSOR_DRVNAME_S5K2P8_MIPI_RAW          "s5k2p8_mipi_raw"
@@ -538,7 +544,7 @@
 #define SENSOR_DRVNAME_S5K3H7Y_MIPI_RAW         "s5k3h7y_mipi_raw"
 #define SENSOR_DRVNAME_S5K4H5YC_MIPI_RAW        "s5k4h5yc_mipi_raw"
 #define SENSOR_DRVNAME_S5K4H7YX_MIPI_RAW        "s5k4h7yx_mipi_raw"
-#define SENSOR_DRVNAME_S5K4H7YX_SUNNY_MIPI_RAW        "s5k4h7yx_sunny_mipi_raw"
+#define SENSOR_DRVNAME_S5K4H7YX_SUNNY_MIPI_RAW  "s5k4h7yx_sunny_mipi_raw"
 #define SENSOR_DRVNAME_S5K4H7YX_MIPI_RAW_FACTORY        "s5k4h7yx_mipi_raw_factory"
 #define SENSOR_DRVNAME_S5K4H7YX_SUNNY_MIPI_RAW_FACTORY        "s5k4h7yx_sunny_mipi_raw_factory"
 #define SENSOR_DRVNAME_S5K4H7YX_OFILM_FRONT_MIPI_RAW        "s5k4h7yx_ofilm_front_mipi_raw"
@@ -555,8 +561,8 @@
 #define SENSOR_DRVNAME_S5K5E8YX_MIPI_RAW        "s5k5e8yx_mipi_raw"
 #define SENSOR_DRVNAME_S5K5E8YXREAR2_MIPI_RAW   "s5k5e8yxrear2_mipi_raw"
 #define SENSOR_DRVNAME_S5K5E9_MIPI_RAW          "s5k5e9_mipi_raw"
-#define SENSOR_DRVNAME_S5K5E9_SUNNY_MIPI_RAW          "s5k5e9_sunny_mipi_raw"
-#define SENSOR_DRVNAME_S5K5E9_MIPI_RAW_FACTORY          "s5k5e9_mipi_raw_factory"
+#define SENSOR_DRVNAME_S5K5E9_SUNNY_MIPI_RAW    "s5k5e9_sunny_mipi_raw"
+#define SENSOR_DRVNAME_S5K5E9_MIPI_RAW_FACTORY  "s5k5e9_mipi_raw_factory"
 #define SENSOR_DRVNAME_S5K5E9_SUNNY_MIPI_RAW_FACTORY          "s5k5e9_sunny_mipi_raw_factory"
 #define SENSOR_DRVNAME_S5KHM2SP_MIPI_RAW        "s5khm2sp_mipi_raw"
 /*HI*/
@@ -584,6 +590,7 @@
 #define SENSOR_DRVNAME_MT9V113_YUV              "mt9v113_yuv"
 #define SENSOR_DRVNAME_MT9T113_MIPI_YUV         "mt9t113_mipi_yuv"
 /*GC*/
+#define SENSOR_DRVNAME_GC02M0_MIPI_RAW          "gc02m0_mipi_raw"
 #define SENSOR_DRVNAME_GC5035_OFILM_MIPI_RAW    "gc5035_ofilm_mipi_raw"
 #define SENSOR_DRVNAME_GC5035_QTECH_MIPI_RAW    "gc5035_qtech_mipi_raw"
 #define SENSOR_DRVNAME_GC02M1_MIPI_RAW          "gc02m1_mipi_raw"
@@ -654,7 +661,6 @@
 #define SENSOR_DRVNAME_OV16A10_MIPI_RAW         "ov16a10_mipi_raw"
 #define SENSOR_DRVNAME_GC02M1B_MIPI_MONO        "gc02m1b_mipi_mono"
 #define SENSOR_DRVNAME_OV48C_MIPI_RAW           "ov48c_mipi_raw"
-
 
 /******************************************************************************
  *

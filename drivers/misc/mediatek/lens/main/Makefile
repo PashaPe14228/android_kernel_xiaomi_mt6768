@@ -45,7 +45,6 @@ MAIN_CFILES += common/dw9714af/DW9714AF.c
 MAIN_CFILES += common/dw9800waf/DW9800WAF.c
 MAIN_CFILES  += common/dw9814af/DW9814AF.c
 MAIN_CFILES  += common/dw9800waf/DW9800WAF.c
-
 MAIN_CFILES  += common/dw9718af/DW9718AF.c
 MAIN_CFILES  += common/dw9718saf/DW9718SAF.c
 MAIN_CFILES  += common/dw9719taf/DW9719TAF.c

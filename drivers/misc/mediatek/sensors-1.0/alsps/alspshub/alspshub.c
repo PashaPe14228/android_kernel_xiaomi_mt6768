@@ -454,7 +454,6 @@ static int alshub_factory_set_cali(int32_t offset)
 
 }
 
-
 static int alshub_factory_set_cali_0lux(int32_t offset)
 {
 	int err = 0;

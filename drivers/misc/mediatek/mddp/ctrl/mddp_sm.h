@@ -3,7 +3,6 @@
  * mddp_sm.h - Structure/API provided by MDDP state machine.
  *
  * Copyright (c) 2020 MediaTek Inc.
- * Copyright (C) 2021 XiaoMi, Inc.
  */
 
 #ifndef __MDDP_SM_H

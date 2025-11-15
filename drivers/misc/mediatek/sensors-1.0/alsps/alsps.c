@@ -21,6 +21,7 @@ struct alsps_context *alsps_context_obj /* = NULL*/;
 struct platform_device *pltfm_dev;
 int last_als_report_data = -1;
 static int g_screen_info;
+
 /* AAL default delay timer(nano seconds)*/
 #define AAL_DELAY 200000000
 
@@ -45,7 +46,6 @@ int als_data_report_t(int value, int status, int64_t time_stamp)
 		err = sensor_input_event(cxt->als_mdev.minor, &event);
 		cxt->is_get_valid_als_data_after_enable = true;
 	}
-
 	if (1) {
 		event.handle = ID_LIGHT;
 		event.flush_action = DATA_ACTION;
@@ -55,7 +55,6 @@ int als_data_report_t(int value, int status, int64_t time_stamp)
 		if (err >= 0)
 			last_als_report_data = value;
 	}
-
 	return err;
 }
 int als_data_report(int value, int status)
@@ -1117,6 +1116,7 @@ DEVICE_ATTR(pscali, 0644, NULL, ps_store_cali);
 DEVICE_ATTR(pscali_sec, 0644, NULL, pscali_sec_store_cali);  //new add
 DEVICE_ATTR(update_cali_data, 0644, NULL, update_cali_data_store_cali);  //new add
 DEVICE_ATTR(screen_info, 0644, als_show_screen_info, als_store_screen_info);
+
 static struct attribute *als_attributes[] = {
 	&dev_attr_alsactive.attr,
 	&dev_attr_alsbatch.attr,
