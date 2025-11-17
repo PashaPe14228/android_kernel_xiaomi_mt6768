@@ -82,13 +82,8 @@ static int ft8719_short_test(struct fts_test *tdata, bool *test_result)
 	ch_num = tdata->node.rx_num;
 	ret = short_get_adcdata_incell(TEST_RETVAL_AA, ch_num, byte_num, adcdata);
 	if (ret < 0) {
-		ito_test_result[1] = 'F';
-		printk("[%s]: --ITO spi test fail\n", __func__);
 		FTS_TEST_SAVE_ERR("get adc data fail\n");
 		goto test_err;
-	} else {
-		ito_test_result[1] = 'P';
-		printk("[%s]: --ITO spi test success\n", __func__);
 	}
 
 	/* calculate resistor */
@@ -116,13 +111,9 @@ static int ft8719_short_test(struct fts_test *tdata, bool *test_result)
 test_err:
 	if (tmp_result) {
 		*test_result = true;
-		ito_test_result[10] = 'P';
-		printk("[%s]: --ITO shot test success\n", __func__);
 		FTS_TEST_SAVE_INFO("------ Short Circuit Test PASS\n");
 	} else {
 		*test_result = false;
-		ito_test_result[10] = 'F';
-		printk("[%s]: --ITO shot test fail\n", __func__);
 		FTS_TEST_SAVE_INFO("------ Short Circuit Test NG\n");
 	}
 
@@ -294,13 +285,9 @@ restore_reg:
 test_err:
 	if (tmp_result) {
 		*test_result = true;
-		ito_test_result[7] = 'P';
-		printk("[%s]: --ITO open test success\n", __func__);
 		FTS_TEST_SAVE_INFO("------ Open Test PASS\n");
 	} else {
 		*test_result = false;
-		ito_test_result[7] = 'F';
-		printk("[%s]: --ITO open test fail\n", __func__);
 		FTS_TEST_SAVE_INFO("------ Open Test NG\n");
 	}
 
@@ -375,13 +362,9 @@ test_err:
 
 	if (tmp_result) {
 		*test_result = true;
-		ito_test_result[13] = 'P';
-		printk("[%s]: --ITO cb test success\n", __func__);
 		FTS_TEST_SAVE_INFO("------ CB Test PASS\n");
 	} else {
 		*test_result = false;
-		ito_test_result[13] = 'F';
-		printk("[%s]: --ITO cb test fail\n", __func__);
 		FTS_TEST_SAVE_INFO("------ CB Test NG\n");
 	}
 
@@ -454,13 +437,9 @@ test_err:
 
 	if (tmp_result) {
 		*test_result = true;
-		ito_test_result[4] = 'P';
-		printk("[%s]: --ITO rawdata test success\n", __func__);
 		FTS_TEST_SAVE_INFO("------ RawData Test PASS\n");
 	} else {
 		*test_result = false;
-		ito_test_result[4] = 'F';
-		printk("[%s]: --ITO radata test fail\n", __func__);
 		FTS_TEST_SAVE_INFO("------ RawData Test NG\n");
 	}
 
@@ -575,13 +554,9 @@ restore_reg:
 test_err:
 	if (tmp_result) {
 		*test_result = true;
-		ito_test_result[13] = 'P';
-		printk("[%s]: --ITO Noise test success\n", __func__);
 		FTS_TEST_SAVE_INFO("------ LCD Noise Test PASS\n");
 	} else {
 		*test_result = false;
-		ito_test_result[13] = 'F';
-		printk("[%s]: --ITO Noise test fail\n", __func__);
 		FTS_TEST_SAVE_INFO("------ LCD Noise Test NG\n");
 	}
 
