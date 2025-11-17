@@ -101,11 +101,6 @@
 
 #define FTX_MAX_COMPATIBLE_TYPE             4
 #define FTX_MAX_COMMMAND_LENGTH             16
-#define FOCAL_LOCKDOWN 1
-#if FOCAL_LOCKDOWN
-int focal_proc_tp_lockdown_info(void);
-void focal_lockdown_proc_deinit(void);
-#endif
 
 /*****************************************************************************
 * Private enumerations, structures and unions using typedef
@@ -159,7 +154,6 @@ struct fts_ts_data {
     spinlock_t irq_lock;
     struct mutex report_mutex;
     struct mutex bus_lock;
-    char fts_lockdowninfo[17];
     int irq;
     int log_level;
     int fw_is_running;      /* confirm fw is running when using spi:default 0 */

@@ -98,8 +98,7 @@ extern	void	fts_tp_data_dump_proc_exit(void);
 /*****************************************************************************
 * Static function prototypes
 *****************************************************************************/
-#define TP_LOCKDOWN_INFO "tp_lockdown_info"
-char fts_lockdown[17] = {0};
+
 /*****************************************************************************
 *  Name: fts_wait_tp_to_valid
 *  Brief: Read chip id until TP FW become valid(Timeout: TIMEOUT_READ_REG),
@@ -1052,7 +1051,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 {
     int ret = 0;
     int pdata_size = sizeof(struct fts_ts_platform_data);
-	strlcpy(ts_data->fts_lockdowninfo, fts_lockdown, 17);
+
     FTS_FUNC_ENTER();
     FTS_INFO("%s", FTS_DRIVER_VERSION);
     ts_data->pdata = kzalloc(pdata_size, GFP_KERNEL);
@@ -1164,14 +1163,6 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data)
 	}
 #endif
 
-#if FOCAL_LOCKDOWN
-	ret = focal_proc_tp_lockdown_info();
-	if (ret != 0) {
-		FTS_ERROR("focal tp_lockdown_info init failed. ret= %d\n", ret);
-		goto err_lockdown_proc_init_failed;
-	}
-#endif
-
 #if FTS_ESDCHECK_EN
 	ret = fts_esdcheck_init(ts_data);
 	if (ret) {
@@ -1222,11 +1213,6 @@ err_bus_init:
 
 err_fts_extra_proc_init_failed:
 	fts_extra_proc_deinit();
-	FTS_FUNC_EXIT();
-	return ret;
-
-err_lockdown_proc_init_failed:
-	focal_lockdown_proc_deinit();
 	FTS_FUNC_EXIT();
 	return ret;
 
@@ -1581,12 +1567,7 @@ static struct tpd_driver_t tpd_device_driver = {
     .suspend = tpd_suspend,
     .resume = tpd_resume,
 };
-int __init is_fts_lockdown_info_detect(char *str)
-{
-	strlcpy(fts_lockdown, str, sizeof(fts_lockdown));
-	return 0;
-}
- __setup("tp_lockdown_info=", is_fts_lockdown_info_detect);
+
 /*****************************************************************************
 *  Name: tpd_driver_init
 *  Brief: 1. Get dts information

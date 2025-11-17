@@ -53,8 +53,7 @@
 #define PROC_ENTER_TEST_ENVIRONMENT             14
 #define PROC_NAME                               "ftxxxx-debug"
 #define PROC_BUF_SIZE                           256
-#define TP_LOCKDOWN_INFO "tp_lockdown_info"
-static struct proc_dir_entry *focal_proc_create_tp_lock_down;
+
 /*****************************************************************************
 * Private enumerations, structures and unions using typedef
 *****************************************************************************/
@@ -1170,43 +1169,4 @@ int fts_remove_sysfs(struct fts_ts_data *ts_data)
 {
     sysfs_remove_group(&ts_data->dev->kobj, &fts_attribute_group);
     return 0;
-}
-
-static int focal_tp_lock_down_info_show(struct seq_file *m, void *data)
-{
-	seq_printf(m, "%s\n", fts_data->fts_lockdowninfo);
-	return 0;
-}
-
-static int focal_tp_lock_down_info_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, focal_tp_lock_down_info_show, inode->i_private);
-}
-
-static const struct file_operations proc_tp_lock_down_info_fops = {
-	.owner = THIS_MODULE,
-	.open = focal_tp_lock_down_info_open,
-	.read = seq_read,
-};
-
-int focal_proc_tp_lockdown_info(void)
-{
-	focal_proc_create_tp_lock_down = proc_create("tp_lockdown_info", 0644, NULL, &proc_tp_lock_down_info_fops);
-	if (!focal_proc_create_tp_lock_down) {
-		FTS_ERROR("Failed to create focal_tp_lockdown_info\n");
-		return -EINVAL;
-	} else {
-		FTS_INFO("Sucess to creat focal_tp_lockdown_info /proc");
-		return 0;
-	}
-	return 0;
-}
-
-void focal_lockdown_proc_deinit(void)
-{
-	if (focal_proc_create_tp_lock_down != NULL) {
-		remove_proc_entry("tp_lockdown_info", NULL);
-		focal_proc_create_tp_lock_down = NULL;
-		FTS_INFO("Removed /proc/%s\n", "tp_lockdown_info");
-	}
 }
