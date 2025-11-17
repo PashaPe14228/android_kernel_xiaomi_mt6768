@@ -1,75 +1,59 @@
 /************************************************************************
-* Copyright (C) 2012-2019, Focaltech Systems (R), All Rights Reserved.
-* Copyright (C) 2021 XiaoMi, Inc.
-*
-* File Name: Focaltech_test_ft8719.c
-*
-* Author: Focaltech Driver Team
-*
-* Created: 2017-12-01
-*
-* Abstract:
-*
-************************************************************************/
+ * Copyright (C) 2012-2019, Focaltech Systems (R), All Rights Reserved.
+ * Copyright (C) 2021 XiaoMi, Inc.
+ *
+ * File Name: Focaltech_test_ft8719.c
+ *
+ * Author: Focaltech Driver Team
+ *
+ * Created: 2017-12-01
+ *
+ * Abstract:
+ *
+ ************************************************************************/
 
 /*****************************************************************************
-* Included header files
-*****************************************************************************/
+ * Included header files
+ *****************************************************************************/
 #include "../focaltech_test.h"
 #include <linux/uaccess.h>
 /*******************************************************************************
-* Private constant and macro definitions using #define
-*******************************************************************************/
-#define CODE2_SHORT_TEST				14
-#define CODE2_OPEN_TEST				 24
-#define CODE2_LCD_NOISE_TEST			15
-
-extern char ito_test_result[16];
-
-/*******************************************************************************
-* Private enumerations, structures and unions using typedef
-*******************************************************************************/
-
-/*******************************************************************************
-* Static variables
-*******************************************************************************/
-
-/*******************************************************************************
-* Global variable or extern global variabls/functions
-*******************************************************************************/
-
-
+ * Private constant and macro definitions using #define
+ *******************************************************************************/
 #ifdef FTS_GET_TP_DIFFER
-
-/////////////////////////////////////////////////Reg
-//#define REG_LINE_NUM	0x01
-//#define REG_RawBuf0 0x36
-
-/*-----------------------------------------------------------
-Error Code for Comm
------------------------------------------------------------*/
-#define ERROR_CODE_OK						   0x00
-#define ERROR_CODE_INVALID_COMMAND			  0x02
-#define ERROR_CODE_INVALID_PARAM				0x03
-#define ERROR_CODE_WAIT_RESPONSE_TIMEOUT		0x07
-#define ERROR_CODE_COMM_ERROR				   0x0c
-#define ERROR_CODE_ALLOCATE_BUFFER_ERROR		0x0d
+#define ERROR_CODE_OK                           0x00
+#define ERROR_CODE_INVALID_COMMAND              0x02
+#define ERROR_CODE_INVALID_PARAM                0x03
+#define ERROR_CODE_WAIT_RESPONSE_TIMEOUT        0x07
+#define ERROR_CODE_COMM_ERROR                   0x0c
+#define ERROR_CODE_ALLOCATE_BUFFER_ERROR        0x0d
 
 #define FTS_PROC_TP_DIFFER "fts_tp_differ"
 #define FTS_PROC_TP_rawdata "fts_tp_rawdata"
 
 static struct proc_dir_entry *tp_differ_proc;
 static struct proc_dir_entry *tp_rawdata_proc;
-//u8 tx_num = 0;
-//u8 rx_num = 0;
-//static short m_iTempDiffData[TX_NUM_MAX *RX_NUM_MAX] = {0};
-//static short m_diffdata[TX_NUM_MAX][RX_NUM_MAX] = {{0}};
-//static char m_ucdiffData[TX_NUM_MAX *RX_NUM_MAX * 2] = {0};
 #endif
 
+#define CODE2_SHORT_TEST                14
+#define CODE2_OPEN_TEST                 24
+#define CODE2_LCD_NOISE_TEST            15
+
 /*******************************************************************************
-* Static function prototypes
-*******************************************************************************/
+ * Private enumerations, structures and unions using typedef
+ *******************************************************************************/
+
+/*******************************************************************************
+ * Static variables
+ *******************************************************************************/
+
+/*******************************************************************************
+ * Global variable or extern global variabls/functions
+ *******************************************************************************/
+
+/*******************************************************************************
+ * Static function prototypes
+ *******************************************************************************/
 static int ft8719_short_test(struct fts_test *tdata, bool *test_result)
 {
 	int ret = 0;
@@ -458,8 +442,8 @@ static int ft8719_rawdata_test(struct fts_test *tdata, bool *test_result)
 	/* compare */
 	tmp_result = compare_array(rawdata,
 							   thr->rawdata_min,
-							   thr->rawdata_max,
-							   key_check);
+								thr->rawdata_max,
+								key_check);
 
 test_err:
 	/* rawdata test disble */
@@ -624,60 +608,65 @@ static int start_test_ft8719(void)
 		return -EINVAL;
 	}
 
-
 	/* short test */
 	if (true == test_item->short_test) {
 		ret = ft8719_short_test(tdata, &temp_result);
-		if ((ret < 0) || (false == temp_result))
+		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+		}
 	}
 
 	/* open test */
 	if (true == test_item->open_test) {
 		ret = ft8719_open_test(tdata, &temp_result);
-		if ((ret < 0) || (false == temp_result))
+		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+		}
 	}
 
 	/* cb test */
 	if (true == test_item->cb_test) {
 		ret = ft8719_cb_test(tdata, &temp_result);
-		if ((ret < 0) || (false == temp_result))
+		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+		}
 	}
 
 	/* rawdata test */
 	if (true == test_item->rawdata_test) {
 		ret = ft8719_rawdata_test(tdata, &temp_result);
-		if ((ret < 0) || (false == temp_result))
+		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+		}
 	}
 
 	/* lcd noise test */
 	if (true == test_item->lcdnoise_test) {
 		ret = ft8719_lcdnoise_test(tdata, &temp_result);
-		if ((ret < 0) || (false == temp_result))
+		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
 		}
+	}
 
 	return test_result;
 }
 
 #ifdef FTS_GET_TP_DIFFER
-#define ENTER_WORK_FACTORY_RETRIES			  5
-#define FACTORY_TEST_DELAY					  18
-#define FACTORY_TEST_RETRY_DELAY				100
+#define ENTER_WORK_FACTORY_RETRIES              5
+#define FACTORY_TEST_DELAY                      18
+#define FACTORY_TEST_RETRY_DELAY                100
 
-#define FACTORY_REG_CHX_NUM					 0x02
-#define FACTORY_REG_CHY_NUM					 0x03
-#define DEVICE_MODE_ADDR						0x00
-#define FACTORY_REG_LINE_ADDR				   0x01
-#define FACTORY_REG_RAWDATA_ADDR				0x6A
-#define FACTORY_REG_DATA_SELECT				 0x06
+#define FACTORY_REG_CHX_NUM                     0x02
+#define FACTORY_REG_CHY_NUM                     0x03
+#define DEVICE_MODE_ADDR                        0x00
+#define FACTORY_REG_LINE_ADDR                   0x01
+#define FACTORY_REG_RAWDATA_ADDR                0x6A
+#define FACTORY_REG_DATA_SELECT                 0x06
+
 /****************************************************
 分包读包长度宏，默认128，最大256，如果客户系统读受限制，可以修改，建议4的倍数
 ***************************************************/
-#define packet								  128
+#define packet                                  128
 
 int fts_raw_enter_factory_mode(void)
 {
