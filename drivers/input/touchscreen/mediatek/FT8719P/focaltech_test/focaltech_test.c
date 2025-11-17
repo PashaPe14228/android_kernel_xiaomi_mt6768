@@ -1705,11 +1705,11 @@ static int get_channel_num(struct fts_test *tdata)
 	}
 	tdata->node.tx_num = tx_num;
 	tdata->node.rx_num = rx_num;
-	if (IC_HW_INCELL == tdata->func->hwtype)
+	if (IC_HW_INCELL == tdata->func->hwtype) {
 		tdata->node.channel_num = tx_num * rx_num;
-	else if (IC_HW_MC_SC == tdata->func->hwtype){
+	} else if (IC_HW_MC_SC == tdata->func->hwtype) {
 		tdata->node.channel_num = tx_num + rx_num;
-    }
+	}
 		tdata->node.node_num = tx_num * rx_num;
     }
 
@@ -1952,10 +1952,6 @@ static ssize_t fts_ito_test_write(struct file *file, const char __user *buffer,
 	return -EPERM;
 }
 
-/*
- * return value:
- *
- */
 static int fts_ito_test_show(struct seq_file *file, void *data)
 {
 	char fwname[128] = {0};

@@ -689,12 +689,6 @@ bool start_selftest(int tmp)
 	}
 	return test_result;
 }
-struct test_funcs test_func_ft8719 = {
-    .ctype = {0x0D, 0x0F},
-    .hwtype = IC_HW_INCELL,
-    .key_num_total = 4,
-    .start_test = start_test_ft8719,
-};
 
 #ifdef FTS_GET_TP_DIFFER
 #define ENTER_WORK_FACTORY_RETRIES              5
@@ -1026,3 +1020,9 @@ int fts_tp_differ_proc(void)
 }
 #endif
 
+struct test_funcs test_func_ft8719 = {
+	.ctype = {0x0D, 0x0F},
+	.hwtype = IC_HW_INCELL,
+	.key_num_total = 4,
+	.start_test = start_test_ft8719,
+};

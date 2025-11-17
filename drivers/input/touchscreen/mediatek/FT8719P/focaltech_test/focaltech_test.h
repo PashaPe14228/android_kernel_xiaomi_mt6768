@@ -588,7 +588,7 @@ void fts_test_save_data(char *name, int code, int *data, int datacnt,
 	bool mc_sc, bool key, bool result);
 
 int fts_tp_differ_proc(void); //FTS_GET_TP_DIFFER
-#define FTS_GET_TP_DIFFER                       //\u83b7\u53d6tp \u5b9e\u65f6differ
+#define FTS_GET_TP_DIFFER
 
 #define fts_malloc_r(p, size) do {\
     if (NULL == p) {\

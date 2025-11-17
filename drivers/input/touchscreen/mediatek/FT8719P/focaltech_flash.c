@@ -231,8 +231,9 @@ static int fts_dpram_write_pe(u32 saddr, const u8 *buf, u32 len, bool wpram) {
 
   packet_number = len / packet_size;
   remainder = len % packet_size;
-  if (remainder > 0)
+  if (remainder > 0) {
     packet_number++;
+  }
   packet_len = packet_size;
   FTS_INFO("write data, num:%d remainder:%d", packet_number, remainder);
 
@@ -322,8 +323,9 @@ static int fts_dpram_write(u32 saddr, const u8 *buf, u32 len, bool wpram) {
     offset = i * packet_size;
     addr = saddr + offset + baseaddr;
     /* last packet */
-    if ((i == (packet_number - 1)) && remainder)
+    if ((i == (packet_number - 1)) && remainder) {
       packet_len = remainder;
+    }
 
     /* set pram address */
     cmd[0] = FTS_ROMBOOT_CMD_SET_PRAM_ADDR;
@@ -393,8 +395,9 @@ static int fts_ecc_cal_tp(u32 ecc_saddr, u32 ecc_len, u16 *ecc_value) {
       FTS_ERROR("ecc finish cmd fail");
       return ret;
     }
-    if (upg->setting_nf->eccok_val == value[0])
+    if (upg->setting_nf->eccok_val == value[0]) {
       break;
+    }
     mdelay(1);
   }
   if (i >= FTS_ECC_FINISH_TIMEOUT) {
@@ -1115,8 +1118,7 @@ static void fts_fwupg_work(struct work_struct *work) {
     ret = fts_read_reg(FTS_REG_FW_VER, &fw_version);
     FTS_INFO("read FW version:0x%02x", fw_version);
 
-    sprintf(tp_version_info, "[Vendor]Huaxing, [TP-IC]:ft8719, [FW]0x%x",
-            fw_version);
+    sprintf(tp_version_info, "[Vendor]Huaxing, [TP-IC]:ft8719, [FW]0x%x", fw_version);
     hq_regiser_hw_info(HWID_CTP, tp_version_info);
   }
 }

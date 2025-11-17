@@ -70,10 +70,6 @@
 #define GESTURE_V 0x54
 #define GESTURE_Z 0x41
 #define GESTURE_C 0x34
-#define WAKEUP_OFF 0x04
-#define WAKEUP_ON 0x05
-
-bool fts_gesture_flag;
 
 /*****************************************************************************
  * Private enumerations, structures and unions using typedef
@@ -103,6 +99,10 @@ static struct fts_gesture_st fts_gesture_data;
 /*****************************************************************************
  * Global variable or extern global variabls/functions
  *****************************************************************************/
+#define WAKEUP_OFF 0x04
+#define WAKEUP_ON 0x05
+
+bool fts_gesture_flag;
 
 /*****************************************************************************
  * Static function prototypes
@@ -391,10 +391,11 @@ int fts_gesture_suspend(struct fts_ts_data *ts_data) {
       break;
   }
 
-  if (i >= 5)
+  if (i >= 5) {
     FTS_ERROR("make IC enter into gesture(suspend) fail,state:%x", state);
-  else
+  } else {
     FTS_INFO("Enter into gesture(suspend) successfully");
+  }
 
   FTS_FUNC_EXIT();
   return 0;
@@ -417,10 +418,11 @@ int fts_gesture_resume(struct fts_ts_data *ts_data) {
       break;
   }
 
-  if (i >= 5)
+  if (i >= 5) {
     FTS_ERROR("make IC exit gesture(resume) fail,state:%x", state);
-  else
+  } else {
     FTS_INFO("resume from gesture successfully");
+  }
 
   FTS_FUNC_EXIT();
   return 0;
@@ -438,7 +440,7 @@ int fts_gesture_switch(struct input_dev *dev, unsigned int type,
     } else if (value == WAKEUP_ON) {
       ts_data->gesture_mode = ENABLE;
       fts_gesture_flag = true;
-      FTS_INFO("fts_gesture_flag:%d", fts_gesture_flag);
+      FTS_INFO("gesture enabled:%d", fts_gesture_flag);
     }
   }
   FTS_FUNC_EXIT();
