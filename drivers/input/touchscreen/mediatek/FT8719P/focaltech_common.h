@@ -112,7 +112,7 @@
 
 /*****************************************************************************
  *  Alternative mode (When something goes wrong, the modules may be able to
- * solve the problem.)
+ *solve the problem.)
  *****************************************************************************/
 /*
  * point report check

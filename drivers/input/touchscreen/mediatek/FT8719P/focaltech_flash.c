@@ -37,6 +37,7 @@
 #include "focaltech_core.h"
 #include <linux/hqsysfs.h>
 #include <linux/string.h>
+
 /*****************************************************************************
  * Private constant and macro definitions using #define
  *****************************************************************************/
@@ -48,6 +49,7 @@
 #define FTS_FLASH_PACKET_LENGTH_SPI (32 * 1024 - 16)
 #define FTS_TP_INFO "fts_tp_info"
 static struct proc_dir_entry *FTS_proc_tp_info_entry;
+
 /*****************************************************************************
  * Private enumerations, structures and unions using typedef
  *****************************************************************************/
@@ -55,7 +57,6 @@ static struct proc_dir_entry *FTS_proc_tp_info_entry;
 /*****************************************************************************
  * Global variable or extern global variabls/functions
  *****************************************************************************/
-
 u8 fw_file[] = {
 #include FTS_UPGRADE_FW_FILE
 };

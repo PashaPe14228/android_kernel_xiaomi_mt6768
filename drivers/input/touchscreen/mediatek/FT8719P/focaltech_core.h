@@ -267,4 +267,5 @@ int fts_proximity_recovery(struct fts_ts_data *ts_data);
 #endif
 int fts_gesture_switch(struct input_dev *dev, unsigned int type,
                        unsigned int code, int value);
+
 #endif /* __LINUX_FOCALTECH_CORE_H__ */

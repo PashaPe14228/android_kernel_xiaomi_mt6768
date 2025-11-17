@@ -296,7 +296,7 @@ static int fts_esdcheck_get_status(void) {
 /*****************************************************************************
  *  Name: fts_esdcheck_proc_busy
  *  Brief: When APK or ADB command access TP via driver, then need set
- * proc_debug, then will not check ESD. Input: Output: Return:
+ *proc_debug, then will not check ESD. Input: Output: Return:
  *****************************************************************************/
 int fts_esdcheck_proc_busy(bool proc_debug) {
   fts_esdcheck_data.proc_debug = proc_debug;

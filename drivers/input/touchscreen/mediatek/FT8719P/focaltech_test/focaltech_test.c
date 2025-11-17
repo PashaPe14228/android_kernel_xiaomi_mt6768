@@ -35,6 +35,7 @@
 *****************************************************************************/
 #include "focaltech_test.h"
 #include	<linux/uaccess.h>
+
 /*****************************************************************************
 * Private constant and macro definitions using #define
 *****************************************************************************/
@@ -581,7 +582,7 @@ int get_rawdata(int *data)
 	val = 0xAA;
 	addr = FACTORY_REG_LINE_ADDR;
 	rawdata_addr = FACTORY_REG_RAWDATA_ADDR_MC_SC;
-    } else {
+	} else {
 	val = 0x0;
 	addr = FACTORY_REG_RAWDATA_SADDR_SC;
 	rawdata_addr = FACTORY_REG_RAWDATA_ADDR_SC;
@@ -1351,9 +1352,9 @@ static int fts_test_save_result_txt(struct fts_test *tdata)
     }
 
     FTS_TEST_INFO("test result length in txt:%d", tdata->testresult_len);
-    ret = fts_test_save_test_data(FTS_TXT_FILE_NAME, tdata->testresult,
+	ret = fts_test_save_test_data(FTS_TXT_FILE_NAME, tdata->testresult,
 	tdata->testresult_len);
-    return ret;
+	return ret;
 #endif
 }
 
@@ -1850,10 +1851,11 @@ static int fts_test_main_exit(void)
 {
     struct fts_test *tdata = fts_ftest;
     int ret = 0;//ITO_TEST_NORMALIZED_NODE
-    FTS_TEST_FUNC_ENTER();
-    ret = fts_test_save_data_csv(tdata);
-    ret = fts_test_save_result_txt(tdata);
-    if (ret == 0)//ITO_TEST_NORMALIZED_NODE
+
+	FTS_TEST_FUNC_ENTER();
+	ret = fts_test_save_data_csv(tdata);
+	ret = fts_test_save_result_txt(tdata);
+	if (ret == 0)//ITO_TEST_NORMALIZED_NODE
 		ito_test_status = 3;
 
     /* free memory */
@@ -1925,6 +1927,7 @@ static int fts_test_entry(char *ini_file_name)
 	goto test_err;
     }
     ito_test_status = 1;
+
     /* Start testing according to the test configuration */
     if (true == fts_test_start()) {
 	FTS_TEST_SAVE_INFO("\n\n=======Tp test pass.\n");
@@ -2623,7 +2626,7 @@ static ssize_t fts_tp_selftest_read(struct file *file, char __user *buf, size_t 
 	FTS_TEST_FUNC_ENTER();
 
 	if (*pos != 0)
-		return 0;
+	return 0;
 
 	cnt = snprintf(tmp, sizeof(tmp), "%d\n", my_test_result);
 
@@ -2636,8 +2639,6 @@ static ssize_t fts_tp_selftest_read(struct file *file, char __user *buf, size_t 
 	return cnt;
 
 }
-
-
 
 static const struct file_operations fts_tp_selftest_ops = {
 	.read       = fts_tp_selftest_read,

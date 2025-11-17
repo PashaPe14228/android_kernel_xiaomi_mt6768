@@ -79,7 +79,6 @@ Test Status
 #define RESULT_NG                               2
 #endif
 
-
 #define TX_NUM_MAX                              60
 #define RX_NUM_MAX                              60
 #define NUM_MAX                     ((TX_NUM_MAX)*(RX_NUM_MAX))
@@ -411,9 +410,11 @@ struct fts_test_node {
     int node_num;
     int key_num;
 };
+
 struct test_item {
 	u8 testresult;
 };
+
 struct fts_test {
     struct fts_ts_data *ts_data;
     struct fts_test_node node;
@@ -446,7 +447,6 @@ struct fts_test {
     int testresult_len;
     struct ini_data ini;
     struct test_item test_item[MAX_TEST_ITEM];
-
 };
 
 struct test_funcs {
@@ -544,7 +544,6 @@ enum enumITOtestTmp {
 	SHORT_DATA,
 	NOISE_DATA,
 };
-
 #endif
 
 /*****************************************************************************
@@ -587,6 +586,7 @@ void *fts_malloc(size_t size);
 void fts_free_proc(void *p);
 void fts_test_save_data(char *name, int code, int *data, int datacnt,
 	bool mc_sc, bool key, bool result);
+
 int fts_tp_differ_proc(void); //FTS_GET_TP_DIFFER
 #define FTS_GET_TP_DIFFER                       //\u83b7\u53d6tp \u5b9e\u65f6differ
 

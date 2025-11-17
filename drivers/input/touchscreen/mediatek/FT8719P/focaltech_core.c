@@ -41,7 +41,6 @@
 #include <linux/sched.h>
 #include <linux/string.h>
 #include <uapi/linux/sched/types.h>
-
 #if defined(CONFIG_FB)
 #include <linux/fb.h>
 #include <linux/notifier.h>
@@ -798,6 +797,7 @@ static int fts_input_init(struct fts_ts_data *ts_data) {
 
   input_set_drvdata(input_dev, ts_data);
   input_set_capability(input_dev, EV_KEY, 523);
+
   __set_bit(EV_SYN, input_dev->evbit);
   __set_bit(EV_ABS, input_dev->evbit);
   __set_bit(EV_KEY, input_dev->evbit);
@@ -1097,16 +1097,19 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data) {
     FTS_ERROR("init point report check fail");
   }
 #endif
+
   ret = fts_extra_proc_init();
   if (ret != 0) {
     FTS_ERROR("fts extra proc init failed. ret=%d\n", ret);
     goto err_fts_extra_proc_init_failed;
   }
+
   ret = fts_tp_data_dump_proc_init();
   if (ret != 0) {
     FTS_ERROR("fts extra proc tp data dump failed. ret=%d\n", ret);
     goto err_fts_tp_data_dump_proc_init_failed;
   }
+
   ret = fts_ex_mode_init(ts_data);
   if (ret) {
     FTS_ERROR("init glove/cover/charger fail");
@@ -1144,6 +1147,7 @@ static int fts_ts_probe_entry(struct fts_ts_data *ts_data) {
 
   tpd_load_status = 1;
   tpd_init_status = 1;
+
   FTS_FUNC_EXIT();
   return 0;
 
@@ -1307,6 +1311,7 @@ static int fts_ts_probe(struct spi_device *spi) {
   struct fts_ts_data *ts_data = NULL;
 
   FTS_INFO("Touch Screen(SPI BUS) driver prboe...");
+
   spi->max_speed_hz = 6000000;
   FTS_INFO("[%s]: fts_spi,  spi speed = %d\n", __func__, spi->max_speed_hz);
 
@@ -1466,6 +1471,7 @@ static void tpd_suspend(struct device *dev) {
 #endif
     }
   }
+
   fts_release_all_finger();
   ts_data->suspended = true;
   FTS_FUNC_EXIT();
