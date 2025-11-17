@@ -711,6 +711,10 @@ static void fts_irq_read_report(void) {
   }
 
 #if FTS_PALM_EN
+#ifdef CONFIG_TARGET_PRODUCT_MERLINCOMMON
+  fts_read_reg(0x9A, &mode);
+  if (0x05 == mode)
+#endif
   enter_palm_mode(ts_data);
 #endif
 
@@ -997,7 +1001,11 @@ static void fts_platform_data_init(struct fts_ts_data *ts_data) {
   }
   pdata->max_touch_number = tpd_dts_data.touch_max_num;
   pdata->irq_gpio = 1;
+#ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
   pdata->reset_gpio = 0;
+#else
+  pdata->reset_gpio = 417;
+#endif
   pdata->x_min = 0;
   pdata->x_max = TPD_RES_X;
   pdata->y_min = 0;
@@ -1322,6 +1330,9 @@ static int fts_ts_probe(struct spi_device *spi) {
   spi->controller_data = (void *)&fts_mt_chip_conf;
 #endif
 
+#ifdef CONFIG_TARGET_PRODUCT_MERLINCOMMON
+  spi->chip_select = 0; // select cs 0
+#endif
   ret = spi_setup(spi);
   if (ret) {
     FTS_ERROR("spi setup fail");
@@ -1363,12 +1374,20 @@ static int fts_ts_remove(struct spi_device *spi) {
 }
 
 static const struct spi_device_id fts_ts_id[] = {
+#ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
     {FTS_DRIVER_NAME, 0},
+#else
+    {FTS_DRIVER_NAME, 1},
+#endif
     {},
 };
 static const struct of_device_id fts_dt_match[] = {
     {
+#ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
         .compatible = "focaltech8719P,FTS-ts-spi",
+#else
+        .compatible = "focaltech,fts",
+#endif
     },
     {},
 };

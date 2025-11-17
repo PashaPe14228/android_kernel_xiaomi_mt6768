@@ -148,9 +148,6 @@
  * Report Pressure in multitouch
  * 1:enable(default),0:disable
  */
-
-#define FTS_PALM_EN 1
-
 #define FTS_REPORT_PRESSURE_EN 1
 
 /*
@@ -201,6 +198,8 @@
  * Numbers of modules support
  */
 #define FTS_GET_MODULE_NUM 0
+#define FTS_TP_SELFTEST 1
+#define FTS_PALM_EN 1
 
 /*
  * module_id: mean vendor_id generally, also maybe gpio or lcm_id...
@@ -221,7 +220,11 @@
  * You should rename fw to "focaltech_ts_fw_tianma", and push it into
  * etc/firmware or by customers
  */
+#ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
+#define FTS_MODULE_NAME "huaxing"
+#else
 #define FTS_MODULE_NAME "xinli"
+#endif
 #define FTS_MODULE2_NAME ""
 #define FTS_MODULE3_NAME ""
 

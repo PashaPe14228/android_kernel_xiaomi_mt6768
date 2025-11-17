@@ -40,8 +40,13 @@
 #define FTS_ANDROID_TOUCH		"android_touch"
 #define FTS_ITO_TEST				"self_test"
 #endif
+#ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
 #define FTS_INI_FILE_PATH                       "/vendor/firmware "
 #define FTS_INI_FILE_NAME               "focaltech_mp_fw_huaxing.ini"
+#else
+#define FTS_INI_FILE_PATH					"/vendor/etc/"
+#define FTS_INI_FILE_NAME					"Conf_MultipleTest.ini"
+#endif
 #define FTS_ITO_RESULT_PATH             "/sdcard/Download/fts_"
 #define FTS_TP_DATA_DUMP_EN                     //create procfs /proc/tp_data_dump
 

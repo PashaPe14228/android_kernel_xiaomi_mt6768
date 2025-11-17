@@ -583,11 +583,23 @@ static int start_test_ft8719(void)
 		return -EINVAL;
 	}
 
+	/* enter factory */
+	ret = enter_factory_mode();
+	if (ret < 0) {
+		fts_ftest->test_item[FTS_ENTER_FACTORY_MODE].testresult = RESULT_NG ;
+	} else {
+		FTS_TEST_SAVE_ERR("enter factory pass\n");
+		fts_ftest->test_item[FTS_ENTER_FACTORY_MODE].testresult = RESULT_PASS;
+	}
+
 	/* short test */
 	if (true == test_item->short_test) {
 		ret = ft8719_short_test(tdata, &temp_result);
 		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+			fts_ftest->test_item[FTS_SHORT_CIRCUIT_TEST].testresult = RESULT_NG ;
+		} else {
+			fts_ftest->test_item[FTS_SHORT_CIRCUIT_TEST].testresult = RESULT_PASS ;
 		}
 	}
 
@@ -596,6 +608,9 @@ static int start_test_ft8719(void)
 		ret = ft8719_open_test(tdata, &temp_result);
 		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+			fts_ftest->test_item[FTS_OPEN_TEST].testresult = RESULT_NG ;
+		} else {
+			fts_ftest->test_item[FTS_OPEN_TEST].testresult = RESULT_PASS ;
 		}
 	}
 
@@ -604,6 +619,9 @@ static int start_test_ft8719(void)
 		ret = ft8719_cb_test(tdata, &temp_result);
 		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+			fts_ftest->test_item[FTS_CB_TEST].testresult = RESULT_NG;
+		} else {
+			fts_ftest->test_item[FTS_CB_TEST].testresult = RESULT_PASS;
 		}
 	}
 
@@ -612,6 +630,9 @@ static int start_test_ft8719(void)
 		ret = ft8719_rawdata_test(tdata, &temp_result);
 		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+			fts_ftest->test_item[FTS_RAWDATA_TEST].testresult = RESULT_NG;
+		} else {
+			fts_ftest->test_item[FTS_RAWDATA_TEST].testresult = RESULT_PASS;
 		}
 	}
 
@@ -620,6 +641,59 @@ static int start_test_ft8719(void)
 		ret = ft8719_lcdnoise_test(tdata, &temp_result);
 		if ((ret < 0) || (false == temp_result)) {
 			test_result = false;
+			fts_ftest->test_item[FTS_NOISE_TEST].testresult = RESULT_NG;
+		} else {
+			fts_ftest->test_item[FTS_NOISE_TEST].testresult = RESULT_PASS;
+		}
+	}
+
+	return test_result;
+}
+
+bool start_selftest(int tmp)
+{
+	int ret = 0;
+	struct fts_test *tdata = fts_ftest;
+	//	struct incell_testitem *test_item = &tdata->ic.incell.u.item;
+	bool temp_result = false;
+	bool test_result = true;
+
+	FTS_TEST_FUNC_ENTER();
+	FTS_TEST_INFO("test item:0x%x", fts_ftest->ic.incell.u.tmp);
+
+	if (!tdata || !tdata->testresult || !tdata->buffer) {
+		FTS_TEST_ERROR("tdata is null");
+		return -EINVAL;
+	}
+
+	/* enter factory */
+	ret = enter_factory_mode();
+	if (ret < 0) {
+		fts_ftest->test_item[FTS_ENTER_FACTORY_MODE].testresult = RESULT_NG ;
+	} else {
+		FTS_TEST_SAVE_ERR("enter factory pass\n");
+		fts_ftest->test_item[FTS_ENTER_FACTORY_MODE].testresult = RESULT_PASS;
+	}
+
+	/* short test */
+	if (tmp == 2) {
+		ret = ft8719_short_test(tdata, &temp_result);
+		if ((ret < 0) || (false == temp_result)) {
+			test_result = false;
+			fts_ftest->test_item[FTS_SHORT_CIRCUIT_TEST].testresult = RESULT_NG ;
+		} else {
+			fts_ftest->test_item[FTS_SHORT_CIRCUIT_TEST].testresult = RESULT_PASS ;
+		}
+	}
+
+	/* open test */
+	if (tmp == 1) {
+		ret = ft8719_open_test(tdata, &temp_result);
+		if ((ret < 0) || (false == temp_result)) {
+			test_result = false;
+			fts_ftest->test_item[FTS_OPEN_TEST].testresult = RESULT_NG ;
+		} else {
+			fts_ftest->test_item[FTS_OPEN_TEST].testresult = RESULT_PASS ;
 		}
 	}
 
@@ -639,7 +713,7 @@ static int start_test_ft8719(void)
 #define FACTORY_REG_DATA_SELECT                 0x06
 
 /****************************************************
-·Ö°ü¶Á°ü³¤¶Èºê£¬Ä¬ÈÏ128£¬×î´ó256£¬Èç¹û¿Í»§ÏµÍ³¶ÁÊÜÏŞÖÆ£¬¿ÉÒÔĞŞ¸Ä£¬½¨Òé4µÄ±¶Êı
+åˆ†åŒ…è¯»åŒ…é•¿åº¦å®ï¼Œé»˜è®¤128ï¼Œæœ€å¤§256ï¼Œå¦‚æœå®¢æˆ·ç³»ç»Ÿè¯»å—é™åˆ¶ï¼Œå¯ä»¥ä¿®æ”¹ï¼Œå»ºè®®4çš„å€æ•°
 ***************************************************/
 #define packet                                  128
 

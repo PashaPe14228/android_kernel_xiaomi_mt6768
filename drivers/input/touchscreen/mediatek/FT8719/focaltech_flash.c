@@ -1118,7 +1118,11 @@ static void fts_fwupg_work(struct work_struct *work) {
     ret = fts_read_reg(FTS_REG_FW_VER, &fw_version);
     FTS_INFO("read FW version:0x%02x", fw_version);
 
+#ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
     sprintf(tp_version_info, "[Vendor]Huaxing, [TP-IC]:ft8719, [FW]0x%x", fw_version);
+#else
+    sprintf(tp_version_info, "[Vendor]Xinli, [TP-IC]:ft8719, [FW]0x%x", fw_version);
+#endif
     hq_regiser_hw_info(HWID_CTP, tp_version_info);
   }
 }
@@ -1194,7 +1198,11 @@ int fts_fwupg_exit(struct fts_ts_data *ts_data) {
 }
 
 static int32_t fts_tp_info_show(struct seq_file *m, void *v) {
+#ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
   seq_printf(m, "[Vendor]Huaxing, [TP-IC]:ft8719,[FW]0x%x", fw_version);
+#else
+  seq_printf(m, "[Vendor]Xinli, [TP-IC]:ft8719, [FW]0x%x", fw_version);
+#endif
   return 0;
 }
 
