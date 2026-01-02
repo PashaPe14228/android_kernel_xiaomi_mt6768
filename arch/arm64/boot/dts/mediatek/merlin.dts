@@ -698,7 +698,7 @@
 	reg = <0>; //Same as CS ID
 	status = "ok";
 
-	spi-max-frequency = <8000000>; //4800000,9600000,15000000,19200000;ft8719 max limit 8M
+	spi-max-frequency = <12000000>; //4800000,9600000,15000000,19200000;ft8719 max limit 8M
 	novatek,reset-gpio = <&pio 92 0x00>;
 	novatek,irq-gpio = <&pio 1 0x2001>;
 

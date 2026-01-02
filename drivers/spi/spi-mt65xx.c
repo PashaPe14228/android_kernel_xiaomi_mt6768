@@ -843,17 +843,17 @@ static int mtk_spi_probe(struct platform_device *pdev)
 	if (mdata->dev_comp->must_tx)
 		master->flags = SPI_MASTER_MUST_TX;
 
-	ret = of_property_read_u32(pdev->dev.of_node,
+	/* ret = of_property_read_u32(pdev->dev.of_node,
 		"mediatek,kthread-rt", &value);
 	if (ret < 0)
 		dev_notice(&pdev->dev,
 			"No 'mediatek,kthread-rt' property\n");
 	else {
-		if (value == 1)
+		if (value == 1) */
 			master->rt = true;
-		else
+		/* else
 			master->rt = false;
-	}
+	} */
 
 	/* avoid access spi register when accessed only in tee in case devapc error */
 	if (!of_property_read_bool(pdev->dev.of_node, "tee-only"))

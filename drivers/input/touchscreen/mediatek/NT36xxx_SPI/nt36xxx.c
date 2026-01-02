@@ -1921,7 +1921,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
     ts->client->controller_data = (void *)&ts->spi_ctrl;
 #endif
 
-	client->max_speed_hz = 10000000;
+	client->max_speed_hz = 12000000;
 
 	NVT_LOG("mode=%d, max_speed_hz=%d\n", ts->client->mode, ts->client->max_speed_hz);
 
