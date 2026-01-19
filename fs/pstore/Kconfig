@@ -15,7 +15,7 @@ config PSTORE
 choice
         prompt "Choose compression algorithm"
         depends on PSTORE
-        default PSTORE_ZLIB_COMPRESS
+        default PSTORE_LZ4_COMPRESS
         help
           This option chooses compression algorithm.
 
