@@ -364,13 +364,12 @@ void fts_release_all_finger(void) {
   struct input_dev *input_dev = fts_data->input_dev;
 #if FTS_MT_PROTOCOL_B_EN
   u32 finger_count = 0;
-  u32 max_touches = fts_data->pdata->max_touch_number;
 #endif
 
   FTS_FUNC_ENTER();
   mutex_lock(&fts_data->report_mutex);
 #if FTS_MT_PROTOCOL_B_EN
-  for (finger_count = 0; finger_count < max_touches; finger_count++) {
+  for (finger_count = 0; finger_count < FTS_MAX_POINTS_SUPPORT; finger_count++) {
     input_mt_slot(input_dev, finger_count);
     input_mt_report_slot_state(input_dev, MT_TOOL_FINGER, false);
   }
@@ -433,7 +432,6 @@ static int fts_input_report_b(struct fts_ts_data *data) {
   int uppoint = 0;
   int touchs = 0;
   bool va_reported = false;
-  u32 max_touch_num = data->pdata->max_touch_number;
   struct ts_event *events = data->events;
 
   for (i = 0; i < data->touch_point; i++) {
@@ -479,7 +477,7 @@ static int fts_input_report_b(struct fts_ts_data *data) {
   }
 
   if (unlikely(data->touchs ^ touchs)) {
-    for (i = 0; i < max_touch_num; i++) {
+    for (i = 0; i < FTS_MAX_POINTS_SUPPORT; i++) {
       if (BIT(i) & (data->touchs ^ touchs)) {
         if (data->log_level >= 1) {
           FTS_DEBUG("[B]P%d UP!", i);
@@ -610,7 +608,6 @@ static int fts_read_parse_touchdata(struct fts_ts_data *data) {
   u8 pointid = 0;
   int base = 0;
   struct ts_event *events = data->events;
-  int max_touch_num = data->pdata->max_touch_number;
   u8 *buf = data->point_buf;
 
   ret = fts_read_touchdata(data);
@@ -631,18 +628,18 @@ static int fts_read_parse_touchdata(struct fts_ts_data *data) {
     }
   }
 
-  if (data->point_num > max_touch_num) {
+  if (data->point_num > FTS_MAX_POINTS_SUPPORT) {
     FTS_INFO("invalid point_num(%d)", data->point_num);
     return -EIO;
   }
 
-  for (i = 0; i < max_touch_num; i++) {
+  for (i = 0; i < FTS_MAX_POINTS_SUPPORT; i++) {
     base = FTS_ONE_TCH_LEN * i;
     pointid = (buf[FTS_TOUCH_ID_POS + base]) >> 4;
     if (pointid >= FTS_MAX_ID)
       break;
-    else if (pointid >= max_touch_num) {
-      FTS_ERROR("ID(%d) beyond max_touch_number", pointid);
+    else if (pointid >= FTS_MAX_POINTS_SUPPORT) {
+      FTS_ERROR("ID(%d) beyond FTS_MAX_POINTS_SUPPORT", pointid);
       return -EINVAL;
     }
 
@@ -817,7 +814,7 @@ static int fts_input_init(struct fts_ts_data *ts_data) {
   }
 
 #if FTS_MT_PROTOCOL_B_EN
-  input_mt_init_slots(input_dev, pdata->max_touch_number, INPUT_MT_DIRECT);
+  input_mt_init_slots(input_dev, FTS_MAX_POINTS_SUPPORT, INPUT_MT_DIRECT);
 #else
   input_set_abs_params(input_dev, ABS_MT_TRACKING_ID, 0, 0x0F, 0, 0);
 #endif
@@ -1001,7 +998,6 @@ static void fts_platform_data_init(struct fts_ts_data *ts_data) {
              pdata->key_x_coords[1], pdata->key_y_coords[1],
              pdata->key_x_coords[2], pdata->key_y_coords[2]);
   }
-  pdata->max_touch_number = tpd_dts_data.touch_max_num;
   pdata->irq_gpio = 1;
 #ifndef CONFIG_TARGET_PRODUCT_MERLINCOMMON
   pdata->reset_gpio = 0;
@@ -1015,7 +1011,7 @@ static void fts_platform_data_init(struct fts_ts_data *ts_data) {
 
   FTS_INFO("max touch number:%d, irq gpio:%d, reset gpio:%d"
            "resolution:(%d,%d)~(%d,%d)",
-           pdata->max_touch_number, pdata->irq_gpio, pdata->reset_gpio,
+           FTS_MAX_POINTS_SUPPORT, pdata->irq_gpio, pdata->reset_gpio,
            pdata->x_min, pdata->y_min, pdata->x_max, pdata->y_max);
 }
 
@@ -1565,11 +1561,7 @@ static int __init tpd_driver_init(void) {
   FTS_FUNC_ENTER();
   FTS_INFO("Driver version: %s", FTS_DRIVER_VERSION);
   tpd_get_dts_info();
-  if (tpd_dts_data.touch_max_num < 2)
-    tpd_dts_data.touch_max_num = 2;
-  else if (tpd_dts_data.touch_max_num > FTS_MAX_POINTS_SUPPORT)
-    tpd_dts_data.touch_max_num = FTS_MAX_POINTS_SUPPORT;
-  FTS_INFO("tpd max touch num:%d", tpd_dts_data.touch_max_num);
+  FTS_INFO("tpd max touch num:%d", FTS_MAX_POINTS_SUPPORT);
 
 #if FTS_PSENSOR_EN
   fts_proximity_init();

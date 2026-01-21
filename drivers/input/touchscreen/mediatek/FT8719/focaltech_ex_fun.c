@@ -949,7 +949,7 @@ static ssize_t fts_driverinfo_show(struct device *dev,
                     pdata->x_min, pdata->y_min, pdata->x_max, pdata->y_max);
 
   count += snprintf(buf + count, PAGE_SIZE, "Max Touchs:%d\n",
-                    pdata->max_touch_number);
+                    FTS_MAX_POINTS_SUPPORT);
 
   count +=
       snprintf(buf + count, PAGE_SIZE, "reset gpio:%d,int gpio:%d,irq:%d\n",

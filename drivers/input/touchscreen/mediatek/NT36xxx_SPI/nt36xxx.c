@@ -1505,11 +1505,11 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	}
 #endif
 
-	for (i = 0; i < ts->max_touch_num; i++) {
+	for (i = 0; i < TOUCH_MAX_FINGER_NUM; i++) {
 		position = 1 + 6 * i;
 		input_id = (uint8_t) (point_data[position] >> 3);
 
-		if ((input_id == 0) || (input_id > ts->max_touch_num))
+		if ((input_id == 0) || (input_id > TOUCH_MAX_FINGER_NUM))
 			continue;
 
 		if (likely(((point_data[position] & 0x07) == 0x01) || ((point_data[position] & 0x07) == 0x02))) {	//finger down (enter & moving)
@@ -1542,7 +1542,7 @@ static irqreturn_t nvt_ts_work_func(int irq, void *data)
 	}
 
 #if MT_PROTOCOL_B
-	for (i = 0; i < ts->max_touch_num; i++) {
+	for (i = 0; i < TOUCH_MAX_FINGER_NUM; i++) {
 		if (likely(press_id[i] != 1)) {
 			input_mt_slot(ts->input_dev, i);
 			input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
@@ -1973,8 +1973,6 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 		goto err_input_dev_alloc_failed;
 	}
 
-	ts->max_touch_num = TOUCH_MAX_FINGER_NUM;
-
 #if TOUCH_KEY_NUM > 0
 	ts->max_button_num = TOUCH_KEY_NUM;
 #endif
@@ -1988,7 +1986,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 	ts->input_dev->propbit[0] = BIT(INPUT_PROP_DIRECT);
 
 #if MT_PROTOCOL_B
-	input_mt_init_slots(ts->input_dev, ts->max_touch_num, 0);
+	input_mt_init_slots(ts->input_dev, TOUCH_MAX_FINGER_NUM, 0);
 #endif
 
 	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, TOUCH_FORCE_NUM, 0, 0);    //pressure = TOUCH_FORCE_NUM
@@ -2001,7 +1999,7 @@ static int32_t nvt_ts_probe(struct spi_device *client)
 #if MT_PROTOCOL_B
 	// no need to set ABS_MT_TRACKING_ID, input_mt_init_slots() already set it
 #else
-	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, ts->max_touch_num, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_TRACKING_ID, 0, TOUCH_MAX_FINGER_NUM, 0, 0);
 #endif //MT_PROTOCOL_B
 #endif //TOUCH_MAX_FINGER_NUM > 1
 
@@ -2515,7 +2513,7 @@ static int32_t nvt_ts_suspend(struct device *dev)
 
 	/* release all touches */
 #if MT_PROTOCOL_B
-	for (i = 0; i < ts->max_touch_num; i++) {
+	for (i = 0; i < TOUCH_MAX_FINGER_NUM; i++) {
 		input_mt_slot(ts->input_dev, i);
 		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
@@ -2590,7 +2588,7 @@ int32_t nvt_ts_tp_suspend(void)
 
 	/* release all touches */
 #if MT_PROTOCOL_B
-	for (i = 0; i < ts->max_touch_num; i++) {
+	for (i = 0; i < TOUCH_MAX_FINGER_NUM; i++) {
 		input_mt_slot(ts->input_dev, i);
 		input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0);
 		input_report_abs(ts->input_dev, ABS_MT_PRESSURE, 0);
