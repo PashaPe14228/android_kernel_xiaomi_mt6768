@@ -1420,6 +1420,7 @@ void reset_sram_state_machine(void)
 
 /******************************************************************************
  *****************************************************************************/
+#ifdef CONFIG_MTK_ENG_BUILD
 void print_clk_registers(void)
 {
 	void __iomem *loader_base = (void __iomem *)scp_loader_base_virt;
@@ -1492,6 +1493,7 @@ void print_clk_registers(void)
 	if (cmp_error)
 		reset_sram_state_machine();
 }
+#endif
 
 /*
  * callback function for work struct
@@ -1554,7 +1556,9 @@ void scp_sys_reset_ws(struct work_struct *ws)
 	pr_debug("[SCP] %s(): disable logger\n", __func__);
 	scp_logger_init_set(0);
 
+#ifdef CONFIG_MTK_ENG_BUILD
 	print_clk_registers();
+#endif
 
 	/* scp reset by CMD, WDT or awake fail */
 	if (scp_reset_type == RESET_TYPE_WDT) {
