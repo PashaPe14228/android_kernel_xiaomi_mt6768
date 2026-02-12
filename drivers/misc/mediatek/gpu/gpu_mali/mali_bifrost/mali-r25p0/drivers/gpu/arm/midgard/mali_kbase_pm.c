@@ -286,11 +286,7 @@ int kbase_pm_driver_suspend(struct kbase_device *kbdev)
 	 * kbase_pm_context_idle() call by locking the pm.lock below
 	 */
 	if (kbase_hwaccess_pm_suspend(kbdev)) {
-		/* No early return yet */
-		if (IS_ENABLED(CONFIG_MALI_ARBITER_SUPPORT))
-			WARN_ON_ONCE(1);
-		else
-			goto exit;
+		goto exit;
 	}
 
 #ifdef CONFIG_MALI_ARBITER_SUPPORT
