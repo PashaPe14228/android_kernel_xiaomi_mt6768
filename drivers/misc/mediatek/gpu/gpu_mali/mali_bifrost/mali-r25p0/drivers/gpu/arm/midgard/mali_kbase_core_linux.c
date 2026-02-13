@@ -3306,25 +3306,7 @@ static ssize_t gpuinfo_show(struct device *dev, struct device_attribute *attr, c
 		unsigned int id;
 		char *name;
 	} gpu_product_id_names[] = {
-		{ .id = GPU_ID_PRODUCT_TMIX, .name = "Mali-G71" },
-		{ .id = GPU_ID_PRODUCT_THEX, .name = "Mali-G72" },
-		{ .id = GPU_ID_PRODUCT_TSIX, .name = "Mali-G51" },
-		{ .id = GPU_ID_PRODUCT_TNOX, .name = "Mali-G76" },
-		{ .id = GPU_ID_PRODUCT_TDVX, .name = "Mali-G31" },
 		{ .id = GPU_ID_PRODUCT_TGOX, .name = "Mali-G52" },
-		{ .id = GPU_ID_PRODUCT_TTRX, .name = "Mali-G77" },
-		{ .id = GPU_ID_PRODUCT_TBEX, .name = "Mali-G78" },
-		{ .id = GPU_ID_PRODUCT_TBAX, .name = "Mali-G78AE" },
-		{ .id = GPU_ID_PRODUCT_LBEX, .name = "Mali-G68" },
-		{ .id = GPU_ID_PRODUCT_TNAX, .name = "Mali-G57" },
-		{ .id = GPU_ID_PRODUCT_TODX, .name = "Mali-G710" },
-		{ .id = GPU_ID_PRODUCT_LODX, .name = "Mali-G610" },
-		{ .id = GPU_ID_PRODUCT_TGRX, .name = "Mali-G510" },
-		{ .id = GPU_ID_PRODUCT_TVAX, .name = "Mali-G310" },
-		{ .id = GPU_ID_PRODUCT_LTUX, .name = "Mali-G615" },
-		{ .id = GPU_ID_PRODUCT_LTIX, .name = "Mali-G620" },
-		{ .id = GPU_ID_PRODUCT_TKRX, .name = "Mali-G725" },
-		{ .id = GPU_ID_PRODUCT_LKRX, .name = "Mali-G625" },
 	};
 	const char *product_name = "(Unknown Mali GPU)";
 	struct kbase_device *kbdev;

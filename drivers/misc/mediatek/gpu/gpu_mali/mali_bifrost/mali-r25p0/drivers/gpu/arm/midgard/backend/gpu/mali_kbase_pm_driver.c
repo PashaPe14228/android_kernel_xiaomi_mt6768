@@ -808,9 +808,6 @@ static void wait_mcu_as_inactive(struct kbase_device *kbdev)
 		kbase_get_timeout_ms(kbdev, KBASE_AS_INACTIVE_TIMEOUT) * USEC_PER_MSEC;
 	lockdep_assert_held(&kbdev->hwaccess_lock);
 
-	if (!kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_TURSEHW_2716))
-		return;
-
 	/* Wait for the AS_ACTIVE_INT bit to become 0 for the AS used by MCU FW */
 	err = kbase_reg_poll32_timeout(kbdev, MMU_AS_OFFSET(MCU_AS_NR, STATUS), val,
 				       !(val & AS_STATUS_AS_ACTIVE_INT_MASK), 10, timeout_us,
@@ -1232,15 +1229,8 @@ static int kbase_pm_mcu_update_state(struct kbase_device *kbdev)
 			break;
 
 		case KBASE_MCU_POWER_DOWN:
-			if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_TITANHW_2922)) {
-				if (!kbdev->csf.firmware_hctl_core_pwr)
-					kbasep_pm_toggle_power_interrupt(kbdev, true);
-				backend->mcu_state = KBASE_MCU_OFF;
-				backend->l2_force_off_after_mcu_halt = true;
-			} else {
-				kbase_csf_firmware_disable_mcu(kbdev);
-				backend->mcu_state = KBASE_MCU_PEND_OFF;
-			}
+			kbase_csf_firmware_disable_mcu(kbdev);
+			backend->mcu_state = KBASE_MCU_PEND_OFF;
 			break;
 
 		case KBASE_MCU_PEND_OFF:
@@ -3195,9 +3185,6 @@ static int kbase_set_sc_quirks(struct kbase_device *kbdev)
 	if (kbase_is_gpu_removed(kbdev))
 		return -EIO;
 
-	if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_TTRX_2968_TTRX_3162))
-		hw_quirks_sc |= SC_VAR_ALGORITHM;
-
 	if (kbase_hw_has_feature(kbdev, BASE_HW_FEATURE_TLS_HASHING))
 		hw_quirks_sc |= SC_TLS_HASH_ENABLE;
 
@@ -3215,10 +3202,6 @@ static int kbase_set_tiler_quirks(struct kbase_device *kbdev)
 
 	if (kbase_is_gpu_removed(kbdev))
 		return -EIO;
-
-	/* Set tiler clock gate override if required */
-	if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_T76X_3953))
-		hw_quirks_tiler |= TC_CLOCK_GATE_OVERRIDE;
 
 	kbdev->hw_quirks_tiler = hw_quirks_tiler;
 

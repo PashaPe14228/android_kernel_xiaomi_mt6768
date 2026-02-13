@@ -46,7 +46,7 @@ static inline bool timer_callback_should_run(struct kbase_device *kbdev, int nr_
 	}
 #endif /* CONFIG_MALI_DEBUG */
 
-	if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_9435)) {
+	if (likely(kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_9435))) {
 		/* Timeouts would have to be 4x longer (due to micro-
 		 * architectural design) to support OpenCL conformance tests, so
 		 * only run the timer when there's:

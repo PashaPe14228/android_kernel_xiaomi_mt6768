@@ -357,19 +357,6 @@ void kbase_job_done(struct kbase_device *kbdev, u32 done)
 				}
 
 				kbase_gpu_irq_evict(kbdev, i, completion_code);
-
-				/* Some jobs that encounter a BUS FAULT may
-				 * result in corrupted state causing future
-				 * jobs to hang. Reset GPU before allowing
-				 * any other jobs on the slot to continue.
-				 */
-				if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_TTRX_3076)) {
-					if (completion_code == BASE_JD_EVENT_JOB_BUS_FAULT) {
-						if (kbase_prepare_to_reset_gpu_locked(
-							    kbdev, RESET_FLAGS_NONE))
-							kbase_reset_gpu_locked(kbdev);
-					}
-				}
 			}
 
 			kbase_reg_write32(kbdev, JOB_CONTROL_ENUM(JOB_IRQ_CLEAR),
@@ -944,17 +931,6 @@ static void kbasep_reset_timeout_worker(struct work_struct *data)
 
 	/* The flush has completed so reset the active indicator */
 	kbdev->irq_reset_flush = false;
-
-	if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_TMIX_8463)) {
-		u64 val;
-		const u32 timeout_us =
-			kbase_get_timeout_ms(kbdev, KBASE_CLEAN_CACHE_TIMEOUT) * USEC_PER_MSEC;
-		/* Ensure that L2 is not transitioning when we send the reset command */
-		const int err = kbase_reg_poll64_timeout(kbdev, GPU_CONTROL_ENUM(L2_PWRTRANS), val,
-							 !val, 0, timeout_us, false);
-
-		WARN(err, "L2 power transition timed out while trying to reset\n");
-	}
 
 	mutex_lock(&kbdev->pm.lock);
 	/* We hold the pm lock, so there ought to be a current policy */

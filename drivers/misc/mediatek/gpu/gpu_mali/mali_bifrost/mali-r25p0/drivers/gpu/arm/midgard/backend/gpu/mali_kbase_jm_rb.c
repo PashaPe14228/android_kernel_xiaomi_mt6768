@@ -1232,17 +1232,6 @@ void kbase_gpu_complete_hw(struct kbase_device *kbdev, unsigned int js, u32 comp
 
 	lockdep_assert_held(&kbdev->hwaccess_lock);
 
-	/*
-	 * When a hard-stop is followed close after a soft-stop, the completion
-	 * code may be set to STOPPED, even though the job is terminated
-	 */
-	if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_TMIX_8438)) {
-		if (completion_code == BASE_JD_EVENT_STOPPED &&
-		    (katom->atom_flags & KBASE_KATOM_FLAG_BEEN_HARD_STOPPED)) {
-			completion_code = BASE_JD_EVENT_TERMINATED;
-		}
-	}
-
 	if ((katom->core_req & BASE_JD_REQ_SKIP_CACHE_END) &&
 	    completion_code != BASE_JD_EVENT_DONE && !(completion_code & BASE_JD_SW_EVENT)) {
 		/* When a job chain fails, on a T60x or when
