@@ -28,10 +28,10 @@ jobs:
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Сначала генерируем .config из нашего дефконфига
+        # Генерируем .config из нашего дефконфига
         make O=out lancelot_defconfig CC=clang
         
-        # Запускаем сборку по стандартам OpenELA (LLVM)
+        # Запускаем компиляцию по современным стандартам LLVM
         make O=out LLVM=1 LLVM_IAS=1 -j$(nproc)
 
     - name: Upload Kernel Output
