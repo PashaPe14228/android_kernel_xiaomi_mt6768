@@ -20,7 +20,11 @@ jobs:
 
     - name: Download AOSP Clang
       run: |
-        git clone --depth=1 https://gitlab.com/rebornos-team/prebuilts/clang/host/linux-x86/clang-r487747c.git clang
+        git clone --depth=1 https://github.com/llvm-mirror/llvm.git clang
+        # Используем предкомпилированный LLVM/Clang окружения Ubuntu, если зеркало тяжелое,
+        # либо качаем чистый Android Clang 17 с проверенного Github-репозитория:
+        rm -rf clang
+        git clone --depth=1 https://github.com/Panchajanya1999/azure-clang.git clang
 
     - name: Compile Kernel
       run: |
@@ -28,10 +32,10 @@ jobs:
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Конфигурируем ядро
+        # Генерируем .config
         make O=out lancelot_defconfig CC=clang
         
-        # Запускаем сборку через стандарты LLVM для OpenELA
+        # Собираем ядро со всеми утилитами LLVM
         make O=out LLVM=1 LLVM_IAS=1 -j$(nproc)
 
     - name: Upload Kernel Output
