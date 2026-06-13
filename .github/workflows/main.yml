@@ -24,34 +24,37 @@ jobs:
 
     - name: Compile Kernel
       run: |
-        # Прописываем путь к компилятору
+        # Добавляем бинарники Clang в PATH
         export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
         
-        # Жестко фиксируем глобальные переменные окружения для кросс-компиляции
+        # Задаем базовые параметры архитектуры
         export ARCH=arm64
         export SUBARCH=arm64
-        export CC=clang
-        export HOSTCC=gcc
-        export HOSTCXX=g++
-        export CLANG_TRIPLE=aarch64-linux-gnu-
-        export CROSS_COMPILE=aarch64-linux-gnu-
-        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
-        export LD=ld.lld
-        export AR=llvm-ar
-        export NM=llvm-nm
-        export OBJCOPY=llvm-objcopy
-        export OBJDUMP=llvm-objdump
-        export STRIP=llvm-strip
 
-        # Очищаем старые следы неудачных конфигураций во избежание конфликтов
-        make O=out clean
-        make O=out mrproper
+        # Очищаем кэш и старые конфиги, принудительно используя хостовый GCC
+        make O=out ARCH=arm64 SUBARCH=arm64 HOSTCC=gcc HOSTCXX=g++ clean
+        make O=out ARCH=arm64 SUBARCH=arm64 HOSTCC=gcc HOSTCXX=g++ mrproper
 
-        # 1. Генерируем .config
-        make O=out lancelot_defconfig
-        
-        # 2. Запускаем сборку ядра (теперь все переменные подхватятся из export автоматически)
-        make O=out -j$(nproc)
+        # 1. Генерируем .config. Передаем HOSTCC/HOSTCXX прямо в команду, чтобы fixdep собрался через GCC
+        make O=out ARCH=arm64 SUBARCH=arm64 lancelot_defconfig HOSTCC=gcc HOSTCXX=g++ CC=clang
+
+        # 2. Запускаем компиляцию ядра. Передаем абсолютно все инструменты LLVM вручную в строку вызова
+        make O=out \
+          ARCH=arm64 \
+          SUBARCH=arm64 \
+          HOSTCC=gcc \
+          HOSTCXX=g++ \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          LD=ld.lld \
+          AR=llvm-ar \
+          NM=llvm-nm \
+          OBJCOPY=llvm-objcopy \
+          OBJDUMP=llvm-objdump \
+          STRIP=llvm-strip \
+          -j$(nproc)
 
     - name: Upload Kernel Output
       uses: actions/upload-artifact@v4
