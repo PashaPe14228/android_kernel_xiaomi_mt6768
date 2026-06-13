@@ -20,11 +20,7 @@ jobs:
 
     - name: Download AOSP Clang
       run: |
-        mkdir clang
-        cd clang
-        curl -LO https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/main/clang-r487747c.tar.gz
-        tar -xf clang-r487747c.tar.gz
-        rm clang-r487747c.tar.gz
+        git clone --depth=1 https://gitlab.com/rebornos-team/prebuilts/clang/host/linux-x86/clang-r487747c.git clang
 
     - name: Compile Kernel
       run: |
