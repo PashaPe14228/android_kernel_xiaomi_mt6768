@@ -28,11 +28,25 @@ jobs:
         export ARCH=arm64
         export SUBARCH=arm64
         
-        # Генерируем .config. Заставляем хост-утилиты собираться через стандартный GCC.
+        # 1. Сначала генерируем .config с использованием хостового GCC
         make O=out lancelot_defconfig HOSTCC=gcc CC=clang
         
-        # Запускаем компиляцию самого ядра с использованием LLVM утилит
-        make O=out HOSTCC=gcc LLVM=1 LLVM_IAS=1 -j$(nproc)
+        # 2. Запускаем сборку ядра. Передаем компоненты Clang по отдельности,
+        # чтобы HOSTCC остался за стандартным GCC и не падал на x86_64.
+        make O=out \
+          HOSTCC=gcc \
+          HOSTCXX=g++ \
+          CC=clang \
+          CLANG_TRIPLE=aarch64-linux-gnu- \
+          CROSS_COMPILE=aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
+          LD=ld.lld \
+          AR=llvm-ar \
+          NM=llvm-nm \
+          OBJCOPY=llvm-objcopy \
+          OBJDUMP=llvm-objdump \
+          STRIP=llvm-strip \
+          -j$(nproc)
 
     - name: Upload Kernel Output
       uses: actions/upload-artifact@v4
