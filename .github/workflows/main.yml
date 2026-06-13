@@ -16,7 +16,7 @@ jobs:
     - name: Install Dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32z1-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev libelf-dev
+        sudo apt-get install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git gnupg gperf lib32ncurses5-dev lib32z1-dev liblz4-tool libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev libelf-dev clang LLVM
 
     - name: Download AOSP Clang
       run: |
@@ -24,36 +24,37 @@ jobs:
 
     - name: Compile Kernel
       run: |
-        # Добавляем бинарники Clang в PATH
-        export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
-        
-        # Задаем базовые параметры архитектуры
+        # Задаем базовую архитектуру
         export ARCH=arm64
         export SUBARCH=arm64
+        
+        # Переменные путей к нашему скачанному Android-тулчейну
+        CLANG_DIR=$GITHUB_WORKSPACE/clang
+        
+        # Полная принудительная очистка
+        make O=out clean
+        make O=out mrproper
 
-        # Очищаем кэш и старые конфиги, принудительно используя хостовый GCC
-        make O=out ARCH=arm64 SUBARCH=arm64 HOSTCC=gcc HOSTCXX=g++ clean
-        make O=out ARCH=arm64 SUBARCH=arm64 HOSTCC=gcc HOSTCXX=g++ mrproper
+        # 1. Генерируем .config. 
+        # Используем родной хостовый GCC/Clang для конфигуратора, чтобы не было ошибок triple x86_64
+        make O=out lancelot_defconfig HOSTCC=gcc HOSTCXX=g++
 
-        # 1. Генерируем .config. Передаем HOSTCC/HOSTCXX прямо в команду, чтобы fixdep собрался через GCC
-        make O=out ARCH=arm64 SUBARCH=arm64 lancelot_defconfig HOSTCC=gcc HOSTCXX=g++ CC=clang
-
-        # 2. Запускаем компиляцию ядра. Передаем абсолютно все инструменты LLVM вручную в строку вызова
+        # 2. Запускаем компиляцию ядра.
+        # Передаем абсолютные пути к бинарникам Android Clang.
+        # В таком режиме HOSTCC (для fixdep) останется системным gcc, а ядро соберется целевым компилятором.
         make O=out \
-          ARCH=arm64 \
-          SUBARCH=arm64 \
           HOSTCC=gcc \
           HOSTCXX=g++ \
-          CC=clang \
+          CC=${CLANG_DIR}/bin/clang \
           CLANG_TRIPLE=aarch64-linux-gnu- \
-          CROSS_COMPILE=aarch64-linux-gnu- \
-          CROSS_COMPILE_ARM32=arm-linux-gnueabi- \
-          LD=ld.lld \
-          AR=llvm-ar \
-          NM=llvm-nm \
-          OBJCOPY=llvm-objcopy \
-          OBJDUMP=llvm-objdump \
-          STRIP=llvm-strip \
+          CROSS_COMPILE=${CLANG_DIR}/bin/aarch64-linux-gnu- \
+          CROSS_COMPILE_ARM32=${CLANG_DIR}/bin/arm-linux-gnueabi- \
+          LD=${CLANG_DIR}/bin/ld.lld \
+          AR=${CLANG_DIR}/bin/llvm-ar \
+          NM=${CLANG_DIR}/bin/llvm-nm \
+          OBJCOPY=${CLANG_DIR}/bin/llvm-objcopy \
+          OBJDUMP=${CLANG_DIR}/bin/llvm-objdump \
+          STRIP=${CLANG_DIR}/bin/llvm-strip \
           -j$(nproc)
 
     - name: Upload Kernel Output
