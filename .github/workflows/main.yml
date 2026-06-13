@@ -27,11 +27,12 @@ jobs:
         export PATH=$GITHUB_WORKSPACE/clang/bin:$PATH
         export ARCH=arm64
         export SUBARCH=arm64
-        export CROSS_COMPILE=aarch64-linux-gnu-
-        export CROSS_COMPILE_ARM32=arm-linux-gnueabi-
         
-        make O=out lancelot_defconfig
-        make O=out CC=clang -j$(nproc)
+        # Сначала генерируем .config из нашего дефконфига
+        make O=out lancelot_defconfig CC=clang
+        
+        # Запускаем сборку по стандартам OpenELA (LLVM)
+        make O=out LLVM=1 LLVM_IAS=1 -j$(nproc)
 
     - name: Upload Kernel Output
       uses: actions/upload-artifact@v4
